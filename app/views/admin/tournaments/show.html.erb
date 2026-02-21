@@ -1,0 +1,60 @@
+<% content_for :title, "#{@tournament.name} — Admin" %>
+
+<h1><%= @tournament.name %></h1>
+<p class="meta">
+  Week <%= @tournament.week_number %> &middot;
+  <%= @tournament.start_date&.strftime("%b %d") %> – <%= @tournament.end_date&.strftime("%b %d") %> &middot;
+  Status: <strong><%= @tournament.status.humanize %></strong>
+</p>
+
+<div class="action-buttons">
+  <%= button_to "Sync Field", sync_field_admin_tournament_path(@tournament), method: :post, class: "btn btn-secondary" %>
+  <%= button_to "Sync Results", sync_results_admin_tournament_path(@tournament), method: :post, class: "btn btn-secondary" %>
+</div>
+
+<section class="card">
+  <h2>Edit</h2>
+  <%= form_with model: [:admin, @tournament] do |f| %>
+    <div class="form-group">
+      <%= f.label :status %>
+      <%= f.select :status, Tournament::STATUSES.map { |s| [s.humanize, s] }, {}, class: "form-control" %>
+    </div>
+    <div class="form-group">
+      <%= f.label :tournament_type %>
+      <%= f.select :tournament_type, Tournament::TYPES.map { |t| [t.humanize, t] }, {}, class: "form-control" %>
+    </div>
+    <div class="form-group">
+      <%= f.label :picks_locked_at %>
+      <%= f.datetime_local_field :picks_locked_at, class: "form-control",
+          value: @tournament.picks_locked_at&.in_time_zone("Eastern Time (US & Canada)")&.strftime("%Y-%m-%dT%H:%M") %>
+    </div>
+    <%= f.submit "Save Changes", class: "btn btn-primary" %>
+  <% end %>
+</section>
+
+<section class="card">
+  <h2>Picks (<%= @picks.count %>)</h2>
+  <% if @picks.any? %>
+    <table class="table">
+      <thead>
+        <tr><th>Player</th><th>Golfer</th><th>2x</th><th>Auto?</th><th>Made Cut</th><th>Earnings</th></tr>
+      </thead>
+      <tbody>
+        <% @picks.each do |pick| %>
+          <tr>
+            <td><%= pick.user.name %></td>
+            <td><%= pick.golfer.name %></td>
+            <td><%= pick.is_double_down? ? "✓" : "" %></td>
+            <td><%= pick.auto_assigned? ? "✓" : "" %></td>
+            <td><%= pick.made_cut.nil? ? "—" : (pick.made_cut? ? "✅" : "❌") %></td>
+            <td><%= pick.earnings_cents.nil? ? "—" : "$#{number_with_delimiter((pick.earnings_cents / 100.0).to_i)}" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No picks yet.</p>
+  <% end %>
+</section>
+
+<%= link_to "← Back to Schedule", admin_tournaments_path, class: "btn btn-outline" %>

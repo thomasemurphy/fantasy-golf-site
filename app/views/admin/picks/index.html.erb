@@ -1,0 +1,45 @@
+<% content_for :title, "Admin — Weekly Picks" %>
+
+<h1>Weekly Pick Sheet</h1>
+
+<% if @tournament %>
+  <h2><%= @tournament.name %> — Week <%= @tournament.week_number %></h2>
+  <p>Status: <strong><%= @tournament.status.humanize %></strong>
+    <% if @tournament.picks_locked_at %>
+      &middot; Picks locked at: <%= @tournament.picks_locked_at.in_time_zone("Eastern Time (US & Canada)").strftime("%a %b %d %-I:%M%p ET") %>
+    <% end %>
+  </p>
+
+  <section class="card">
+    <h3>Submitted Picks (<%= @picks_by_user.count %>)</h3>
+    <table class="table">
+      <thead>
+        <tr><th>Player</th><th>Golfer</th><th>Double Down?</th><th>Auto?</th><th>Earnings</th></tr>
+      </thead>
+      <tbody>
+        <% @picks_by_user.each do |pick| %>
+          <tr>
+            <td><%= pick.user.name %></td>
+            <td><%= pick.golfer.name %></td>
+            <td><%= pick.is_double_down? ? "✓" : "" %></td>
+            <td><%= pick.auto_assigned? ? "✓" : "" %></td>
+            <td><%= pick.earnings_cents.nil? ? "—" : "$#{number_with_delimiter((pick.earnings_cents / 100.0).to_i)}" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+
+  <% if @users_without_picks.any? %>
+    <section class="card">
+      <h3>Missing Picks (<%= @users_without_picks.count %>)</h3>
+      <ul>
+        <% @users_without_picks.each do |user| %>
+          <li><%= user.name %></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+<% else %>
+  <p>No active tournament.</p>
+<% end %>

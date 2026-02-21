@@ -1,0 +1,129 @@
+<% content_for :title, "My Picks — The Feeley Tour Cup" %>
+
+<h1>My Picks</h1>
+
+<% if @current_tournament %>
+  <section class="card current-tournament">
+    <h2><%= @current_tournament.name %></h2>
+    <p class="meta">
+      Week <%= @current_tournament.week_number %> &middot;
+      <%= @current_tournament.start_date&.strftime("%b %d") %> &ndash; <%= @current_tournament.end_date&.strftime("%b %d") %>
+      <% if @current_tournament.purse_cents > 0 %>
+        &middot; Purse: $<%= number_with_delimiter(@current_tournament.purse_dollars.to_i) %>
+      <% end %>
+    </p>
+
+    <% if @current_pick %>
+      <div class="current-pick">
+        <p>
+          Your pick: <strong><%= @current_pick.golfer.name %></strong>
+          <% if @current_pick.is_double_down? %>
+            <span class="badge badge-double-down">2x Double Down</span>
+          <% end %>
+          <% if @current_pick.auto_assigned? %>
+            <span class="badge badge-auto">Auto-assigned</span>
+          <% end %>
+        </p>
+        <% unless @current_tournament.picks_locked? || @current_pick.auto_assigned? %>
+          <%= button_to "Remove Pick", pick_path(@current_pick), method: :delete,
+              data: { confirm: "Remove your pick for #{@current_tournament.name}?" },
+              class: "btn btn-danger btn-sm" %>
+        <% end %>
+      </div>
+    <% elsif @current_tournament.picks_locked? %>
+      <div class="alert alert-warning">
+        <strong>Picks are locked.</strong> The deadline has passed for this tournament.
+      </div>
+    <% else %>
+      <div class="pick-form-wrapper">
+        <% if @available_golfers.any? %>
+          <%= form_with model: Pick.new, url: picks_path, data: { controller: "pick-form" } do |f| %>
+            <div class="form-row">
+              <div class="form-group">
+                <%= f.label :golfer_id, "Select Golfer" %>
+                <%= f.select :golfer_id,
+                    options_for_select(@available_golfers.map { |g| [g.name, g.id] }),
+                    { prompt: "-- Choose a golfer --" },
+                    { class: "form-control" } %>
+              </div>
+
+              <div class="form-group form-check">
+                <%= f.check_box :is_double_down, class: "form-check-input",
+                    disabled: current_user.double_downs_remaining <= 0 %>
+                <%= f.label :is_double_down, class: "form-check-label" do %>
+                  Double Down
+                  <span class="badge"><%= current_user.double_downs_remaining %> remaining</span>
+                <% end %>
+              </div>
+            </div>
+
+            <% if @current_tournament.picks_locked_at %>
+              <p class="deadline-note" data-controller="countdown" data-countdown-deadline-value="<%= @current_tournament.picks_locked_at.iso8601 %>">
+                Pick deadline: <strong><%= @current_tournament.picks_locked_at.in_time_zone("Eastern Time (US & Canada)").strftime("%A, %b %d at %-I:%M %p ET") %></strong>
+                — <span data-countdown-target="timer"></span>
+              </p>
+            <% end %>
+
+            <%= f.submit "Submit Pick", class: "btn btn-primary" %>
+          <% end %>
+        <% else %>
+          <p class="alert alert-info">You've used all available golfers in this tournament's field, or the field hasn't been synced yet.</p>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+<% else %>
+  <div class="card">
+    <p>No active tournament right now. Check back soon!</p>
+  </div>
+<% end %>
+
+<section class="card">
+  <h2>Season History</h2>
+  <p>
+    <strong>Double-downs remaining:</strong> <%= current_user.double_downs_remaining %> / 5 &nbsp;|&nbsp;
+    <strong>Total earned:</strong> $<%= number_with_delimiter((current_user.total_earnings_cents / 100.0).to_i) %>
+  </p>
+
+  <% if @picks.any? %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Wk</th>
+          <th>Tournament</th>
+          <th>Golfer</th>
+          <th>2x</th>
+          <th>Made Cut?</th>
+          <th>Earned</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @picks.order("tournaments.start_date desc").each do |pick| %>
+          <tr>
+            <td><%= pick.tournament.week_number %></td>
+            <td><%= pick.tournament.name %></td>
+            <td><%= pick.golfer.name %></td>
+            <td><%= pick.is_double_down? ? "✓" : "" %></td>
+            <td>
+              <% if pick.made_cut.nil? %>—
+              <% elsif pick.made_cut? %>✅
+              <% else %>❌
+              <% end %>
+            </td>
+            <td>
+              <% if pick.earnings_cents.nil? %>—
+              <% else %>$<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %>
+              <% end %>
+            </td>
+            <td>
+              <%= "Auto-assigned" if pick.auto_assigned? %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No picks yet this season.</p>
+  <% end %>
+</section>

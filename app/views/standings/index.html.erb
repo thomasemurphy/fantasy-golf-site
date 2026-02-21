@@ -1,0 +1,43 @@
+<% content_for :title, "Standings — The Feeley Tour Cup" %>
+
+<h1>Standings</h1>
+
+<div class="tabs">
+  <%= link_to "Overall", standings_path(tab: "overall"), class: "tab #{'active' if @tab == 'overall'}" %>
+  <%= link_to "Majors", standings_path(tab: "majors"), class: "tab #{'active' if @tab == 'majors'}" %>
+  <%= link_to "Side Events", standings_path(tab: "side_events"), class: "tab #{'active' if @tab == 'side_events'}" %>
+  <%= link_to "1st Half", standings_path(tab: "first_half"), class: "tab #{'active' if @tab == 'first_half'}" %>
+  <%= link_to "2nd Half", standings_path(tab: "second_half"), class: "tab #{'active' if @tab == 'second_half'}" %>
+</div>
+
+<section class="card">
+  <table class="table standings-table">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Player</th>
+        <th>Earnings</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @standings.each do |row| %>
+        <tr class="<%= 'highlight' if row[:user] == current_user %>">
+          <td><%= row[:rank] %></td>
+          <td><%= row[:user].name %></td>
+          <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>
+
+<% if @no_cut_users.any? %>
+  <section class="card">
+    <h2>No-Cut Challenge — Still Alive 🏆</h2>
+    <ul>
+      <% @no_cut_users.each do |user| %>
+        <li><%= user.name %></li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
