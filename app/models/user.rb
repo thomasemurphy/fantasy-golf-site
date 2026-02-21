@@ -6,14 +6,7 @@ class User < ApplicationRecord
 
   validates :name, presence: true
 
-  # Users cannot log in until an admin approves them
-  def active_for_authentication?
-    super && approved?
-  end
-
-  def inactive_message
-    approved? ? super : :not_approved
-  end
+  before_create { self.approved = true }
 
   def total_earnings_cents
     picks.where.not(earnings_cents: nil).sum(:earnings_cents)
