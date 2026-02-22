@@ -3,13 +3,19 @@
  */
 
 .deadline-note { font-size: 0.9rem; color: #6c757d; }
-.current-pick  { background: #f0f7ff; border: 1px solid #b8daff; border-radius: 6px; padding: 0.75rem 1rem; }
 
 /* Standings table rank column */
 .standings-table td:first-child { width: 3rem; font-weight: 700; }
 
 /* Highlight current user row */
 tr.highlight { background-color: #fff8e1 !important; }
+
+/* Smaller tournament pills row */
+.nav-link-sm {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.55rem;
+  line-height: 1.4;
+}
 
 /* Tournament status row tints */
 tr.status-in_progress { background-color: #f0fff4; }

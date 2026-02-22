@@ -53,7 +53,7 @@ class PicksController < ApplicationController
     end
 
     pick.destroy
-    redirect_to picks_path, notice: "Pick removed."
+    redirect_to picks_path, notice: "Pick cleared — choose a new golfer below."
   end
 
   private

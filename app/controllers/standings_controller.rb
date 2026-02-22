@@ -1,7 +1,15 @@
 class StandingsController < ApplicationController
   def index
     @tab = params[:tab] || "overall"
-    @standings = compute_standings(@tab)
+    @completed_tournaments = Tournament.joins(:picks).distinct.order(:week_number)
+
+    if params[:tournament_id].present?
+      @tournament = Tournament.find(params[:tournament_id])
+      @standings = tournament_standings(@tournament)
+    else
+      @standings = compute_standings(@tab)
+    end
+
     @no_cut_users = no_cut_survivors
   end
 
@@ -28,6 +36,22 @@ class StandingsController < ApplicationController
         rank: rank,
         user: user,
         earnings_cents: earnings_for_tab(user, tab)
+      }
+    end
+  end
+
+  def tournament_standings(tournament)
+    picks = Pick.where(tournament: tournament)
+                .includes(:user, :golfer)
+                .order(earnings_cents: :desc)
+
+    picks.map.with_index(1) do |pick, rank|
+      {
+        rank: rank,
+        user: pick.user,
+        golfer: pick.golfer,
+        pick: pick,
+        earnings_cents: pick.earnings_cents
       }
     end
   end

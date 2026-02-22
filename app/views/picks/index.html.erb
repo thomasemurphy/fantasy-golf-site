@@ -15,7 +15,7 @@
       </p>
 
       <% if @current_pick %>
-        <div class="current-pick mb-3">
+        <div class="border rounded p-3 mb-3 bg-body-secondary">
           <p class="mb-2">
             Your pick: <strong><%= @current_pick.golfer.name %></strong>
             <% if @current_pick.is_double_down? %>
@@ -26,9 +26,8 @@
             <% end %>
           </p>
           <% unless @current_tournament.picks_locked? || @current_pick.auto_assigned? %>
-            <%= button_to "Remove Pick", pick_path(@current_pick), method: :delete,
-                data: { turbo_confirm: "Remove your pick for #{@current_tournament.name}?" },
-                class: "btn btn-outline-danger btn-sm" %>
+            <%= button_to "Change Pick", pick_path(@current_pick), method: :delete,
+                class: "btn btn-outline-secondary btn-sm" %>
           <% end %>
         </div>
       <% elsif @current_tournament.picks_locked? %>

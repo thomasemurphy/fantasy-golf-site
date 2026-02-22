@@ -2,35 +2,77 @@
 
 <h1 class="mb-4">Standings</h1>
 
-<ul class="nav nav-pills mb-3" role="tablist">
-  <%= link_to "Overall",     standings_path(tab: "overall"),     class: "nav-link #{'active' if @tab == 'overall'}" %>
-  <%= link_to "Majors",      standings_path(tab: "majors"),      class: "nav-link #{'active' if @tab == 'majors'}" %>
-  <%= link_to "Side Events", standings_path(tab: "side_events"), class: "nav-link #{'active' if @tab == 'side_events'}" %>
-  <%= link_to "1st Half",    standings_path(tab: "first_half"),  class: "nav-link #{'active' if @tab == 'first_half'}" %>
-  <%= link_to "2nd Half",    standings_path(tab: "second_half"), class: "nav-link #{'active' if @tab == 'second_half'}" %>
+<ul class="nav nav-pills mb-2" role="tablist">
+  <%= link_to "Overall",     standings_path(tab: "overall"),      class: "nav-link #{'active' if @tournament.nil? && @tab == 'overall'}" %>
+  <%= link_to "Majors",      standings_path(tab: "majors"),       class: "nav-link #{'active' if @tournament.nil? && @tab == 'majors'}" %>
+  <%= link_to "Side Events", standings_path(tab: "side_events"),  class: "nav-link #{'active' if @tournament.nil? && @tab == 'side_events'}" %>
+  <%= link_to "1st Half",    standings_path(tab: "first_half"),   class: "nav-link #{'active' if @tournament.nil? && @tab == 'first_half'}" %>
+  <%= link_to "2nd Half",    standings_path(tab: "second_half"),  class: "nav-link #{'active' if @tournament.nil? && @tab == 'second_half'}" %>
 </ul>
+
+<% if @completed_tournaments.any? %>
+  <ul class="nav nav-pills nav-pills-sm flex-wrap mb-3" role="tablist">
+    <% @completed_tournaments.each do |t| %>
+      <%= link_to standings_path(tournament_id: t.id),
+            class: "nav-link nav-link-sm #{'active' if @tournament&.id == t.id}" do %>
+        <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><%= t.name %>
+      <% end %>
+    <% end %>
+  </ul>
+<% end %>
 
 <div class="card mb-4">
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover standings-table mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Rank</th>
-            <th>Player</th>
-            <th>Earnings</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @standings.each do |row| %>
-            <tr class="<%= 'highlight' if row[:user] == current_user %>">
-              <td><%= row[:rank] %></td>
-              <td><%= row[:user].name %></td>
-              <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+      <% if @tournament %>
+        <table class="table table-hover standings-table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Rank</th>
+              <th>Player</th>
+              <th>Golfer</th>
+              <th>Earnings</th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% @standings.each do |row| %>
+              <tr class="<%= 'highlight' if row[:user] == current_user %>">
+                <td><%= row[:rank] %></td>
+                <td><%= row[:user].name %></td>
+                <td>
+                  <%= row[:golfer].name %>
+                  <% if row[:pick].is_double_down? %>
+                    <span class="badge bg-warning text-dark ms-1">2x</span>
+                  <% end %>
+                  <% if row[:pick].auto_assigned? %>
+                    <span class="badge bg-secondary ms-1">Auto</span>
+                  <% end %>
+                </td>
+                <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <table class="table table-hover standings-table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Rank</th>
+              <th>Player</th>
+              <th>Earnings</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @standings.each do |row| %>
+              <tr class="<%= 'highlight' if row[:user] == current_user %>">
+                <td><%= row[:rank] %></td>
+                <td><%= row[:user].name %></td>
+                <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
     </div>
   </div>
 </div>
