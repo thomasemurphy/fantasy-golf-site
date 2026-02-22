@@ -11,7 +11,7 @@
 </ul>
 
 <% if @completed_tournaments.any? %>
-  <ul class="nav nav-pills nav-pills-sm flex-wrap mb-3" role="tablist">
+  <ul class="nav nav-pills nav-pills-sm flex-wrap mb-4" role="tablist">
     <% @completed_tournaments.each do |t| %>
       <%= link_to standings_path(tournament_id: t.id),
             class: "nav-link nav-link-sm #{'active' if @tournament&.id == t.id}" do %>
@@ -21,60 +21,56 @@
   </ul>
 <% end %>
 
-<div class="card mb-4">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <% if @tournament %>
-        <table class="table table-hover standings-table mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Rank</th>
-              <th>Player</th>
-              <th>Golfer</th>
-              <th>Earnings</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @standings.each do |row| %>
-              <tr class="<%= 'highlight' if row[:user] == current_user %>">
-                <td><%= row[:rank] %></td>
-                <td><%= row[:user].name %></td>
-                <td>
-                  <%= row[:golfer].name %>
-                  <% if row[:pick].is_double_down? %>
-                    <span class="badge bg-warning text-dark ms-1">2x</span>
-                  <% end %>
-                  <% if row[:pick].auto_assigned? %>
-                    <span class="badge bg-secondary ms-1">Auto</span>
-                  <% end %>
-                </td>
-                <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% else %>
-        <table class="table table-hover standings-table mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Rank</th>
-              <th>Player</th>
-              <th>Earnings</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @standings.each do |row| %>
-              <tr class="<%= 'highlight' if row[:user] == current_user %>">
-                <td><%= row[:rank] %></td>
-                <td><%= row[:user].name %></td>
-                <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% end %>
-    </div>
-  </div>
+<div class="standings-table-wrapper">
+  <% if @tournament %>
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Player</th>
+          <th>Golfer</th>
+          <th>Earnings</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @standings.each do |row| %>
+          <tr class="<%= 'highlight' if row[:user] == current_user %>">
+            <td><span class="standings-rank"><%= row[:rank] %></span></td>
+            <td><%= row[:user].name %></td>
+            <td>
+              <%= row[:golfer].name %>
+              <% if row[:pick].is_double_down? %>
+                <span class="badge bg-warning text-dark ms-1">2x</span>
+              <% end %>
+              <% if row[:pick].auto_assigned? %>
+                <span class="badge bg-secondary ms-1">Auto</span>
+              <% end %>
+            </td>
+            <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Player</th>
+          <th>Earnings</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @standings.each do |row| %>
+          <tr class="<%= 'highlight' if row[:user] == current_user %>">
+            <td><span class="standings-rank"><%= row[:rank] %></span></td>
+            <td><%= row[:user].name %></td>
+            <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
 </div>
 
 <% if @no_cut_users.any? %>

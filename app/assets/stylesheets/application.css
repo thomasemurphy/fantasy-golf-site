@@ -4,11 +4,99 @@
 
 .deadline-note { font-size: 0.9rem; color: #6c757d; }
 
-/* Standings table rank column */
-.standings-table td:first-child { width: 3rem; font-weight: 700; }
+/* Standings table wrapper — taargus-inspired */
+.standings-table-wrapper {
+  overflow-x: auto;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  margin-bottom: 1.5rem;
+}
+
+[data-bs-theme="dark"] .standings-table-wrapper {
+  background-color: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+
+.standings-table thead {
+  background-color: #f8f9fa;
+}
+
+[data-bs-theme="dark"] .standings-table thead {
+  background-color: #1f1f1f;
+}
+
+.standings-table th {
+  padding: 10px 14px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+}
+
+[data-bs-theme="dark"] .standings-table th {
+  color: #adb5bd;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.standings-table td {
+  padding: 11px 14px;
+  color: #212529;
+  font-weight: 500;
+  border-bottom: 1px solid #f1f3f5;
+  white-space: nowrap;
+}
+
+[data-bs-theme="dark"] .standings-table td {
+  color: #e9ecef;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.standings-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.standings-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+[data-bs-theme="dark"] .standings-table tbody tr:hover {
+  background-color: #333333;
+}
+
+.standings-rank {
+  font-weight: 700;
+  color: #6c757d;
+  display: inline-block;
+  min-width: 1.5rem;
+  text-align: right;
+  margin-right: 0.5rem;
+}
+
+[data-bs-theme="dark"] .standings-rank {
+  color: #adb5bd;
+}
 
 /* Highlight current user row */
-tr.highlight { background-color: #fff8e1 !important; }
+.standings-table tbody tr.highlight td {
+  background-color: #fffbeb;
+}
+
+[data-bs-theme="dark"] .standings-table tbody tr.highlight td {
+  background-color: #2d2a1a;
+}
 
 /* Smaller tournament pills row */
 .nav-link-sm {
