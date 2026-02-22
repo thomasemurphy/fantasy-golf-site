@@ -1,58 +1,76 @@
 <% content_for :title, "#{@user.name} — Admin" %>
 
-<h1><%= @user.name %></h1>
-<p><%= @user.email %></p>
-
-<div class="meta">
-  <span>Approved: <%= @user.approved? ? "✅" : "❌" %></span> &nbsp;|&nbsp;
-  <span>Paid: <%= @user.entry_paid? ? "✅" : "❌" %></span> &nbsp;|&nbsp;
-  <span>Double-downs: <%= @user.double_downs_remaining %></span> &nbsp;|&nbsp;
-  <span>Admin: <%= @user.admin? ? "Yes" : "No" %></span>
+<div class="d-flex align-items-center gap-3 mb-4">
+  <h1 class="mb-0"><%= @user.name %></h1>
+  <span class="text-muted"><%= @user.email %></span>
 </div>
 
-<section class="card">
-  <h2>Edit</h2>
-  <%= form_with model: [:admin, @user] do |f| %>
-    <div class="form-group">
-      <%= f.label :name %>
-      <%= f.text_field :name, class: "form-control" %>
-    </div>
-    <div class="form-group">
-      <%= f.label :double_downs_remaining %>
-      <%= f.number_field :double_downs_remaining, min: 0, max: 5, class: "form-control" %>
-    </div>
-    <div class="form-check">
-      <%= f.check_box :admin, class: "form-check-input" %>
-      <%= f.label :admin, "Admin access", class: "form-check-label" %>
-    </div>
-    <%= f.submit "Save Changes", class: "btn btn-primary" %>
-  <% end %>
-</section>
+<div class="d-flex gap-2 mb-4">
+  <span class="badge bg-<%= @user.approved? ? 'success' : 'secondary' %>">
+    <%= @user.approved? ? "Approved" : "Pending" %>
+  </span>
+  <span class="badge bg-<%= @user.entry_paid? ? 'success' : 'warning text-dark' %>">
+    <%= @user.entry_paid? ? "Paid" : "Unpaid" %>
+  </span>
+  <span class="badge bg-secondary"><%= @user.double_downs_remaining %> DD left</span>
+  <% if @user.admin? %><span class="badge bg-primary">Admin</span><% end %>
+</div>
 
-<section class="card">
-  <h2>Picks History</h2>
-  <% if @picks.any? %>
-    <table class="table">
-      <thead>
-        <tr><th>Wk</th><th>Tournament</th><th>Golfer</th><th>2x</th><th>Auto?</th><th>Made Cut</th><th>Earnings</th></tr>
-      </thead>
-      <tbody>
-        <% @picks.each do |pick| %>
-          <tr>
-            <td><%= pick.tournament.week_number %></td>
-            <td><%= pick.tournament.name %></td>
-            <td><%= pick.golfer.name %></td>
-            <td><%= pick.is_double_down? ? "✓" : "" %></td>
-            <td><%= pick.auto_assigned? ? "✓" : "" %></td>
-            <td><%= pick.made_cut.nil? ? "—" : (pick.made_cut? ? "✅" : "❌") %></td>
-            <td><%= pick.earnings_cents.nil? ? "—" : "$#{number_with_delimiter((pick.earnings_cents / 100.0).to_i)}" %></td>
-          </tr>
+<div class="row">
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-header">Edit</div>
+      <div class="card-body">
+        <%= form_with model: [:admin, @user] do |f| %>
+          <div class="mb-3">
+            <%= f.label :name, class: "form-label" %>
+            <%= f.text_field :name, class: "form-control" %>
+          </div>
+          <div class="mb-3">
+            <%= f.label :double_downs_remaining, class: "form-label" %>
+            <%= f.number_field :double_downs_remaining, min: 0, max: 5, class: "form-control" %>
+          </div>
+          <div class="form-check mb-3">
+            <%= f.check_box :admin, class: "form-check-input" %>
+            <%= f.label :admin, "Admin access", class: "form-check-label" %>
+          </div>
+          <%= f.submit "Save Changes", class: "btn btn-primary" %>
         <% end %>
-      </tbody>
-    </table>
-  <% else %>
-    <p>No picks yet.</p>
-  <% end %>
-</section>
+      </div>
+    </div>
+  </div>
 
-<%= link_to "← Back to Users", admin_users_path, class: "btn btn-outline" %>
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">Picks History</div>
+      <div class="card-body p-0">
+        <% if @picks.any? %>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr><th>Wk</th><th>Tournament</th><th>Golfer</th><th>2x</th><th>Auto?</th><th>Cut</th><th>Earnings</th></tr>
+              </thead>
+              <tbody>
+                <% @picks.each do |pick| %>
+                  <tr>
+                    <td><%= pick.tournament.week_number %></td>
+                    <td><%= pick.tournament.name %></td>
+                    <td><%= pick.golfer.name %></td>
+                    <td><%= pick.is_double_down? ? "✓" : "" %></td>
+                    <td><%= pick.auto_assigned? ? "✓" : "" %></td>
+                    <td><%= pick.made_cut.nil? ? "—" : (pick.made_cut? ? "✅" : "❌") %></td>
+                    <td><%= pick.earnings_cents.nil? ? "—" : "$#{number_with_delimiter((pick.earnings_cents / 100.0).to_i)}" %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <p class="p-3 text-muted mb-0">No picks yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= link_to "← Back to Users", admin_users_path, class: "btn btn-outline-secondary" %>

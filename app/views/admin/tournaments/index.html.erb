@@ -1,35 +1,45 @@
 <% content_for :title, "Admin — Tournaments" %>
 
-<h1>Season Schedule</h1>
+<h1 class="mb-4">Season Schedule</h1>
 
-<section class="card">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Wk</th>
-        <th>Tournament</th>
-        <th>Dates</th>
-        <th>Type</th>
-        <th>Status</th>
-        <th>Picks Lock</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @tournaments.each do |t| %>
-        <tr class="status-<%= t.status %>">
-          <td><%= t.week_number %></td>
-          <td><%= link_to t.name, admin_tournament_path(t) %></td>
-          <td><%= t.start_date&.strftime("%b %d") %> – <%= t.end_date&.strftime("%b %d") %></td>
-          <td><%= t.tournament_type.humanize %></td>
-          <td><span class="badge badge-<%= t.status %>"><%= t.status.humanize %></span></td>
-          <td><%= t.picks_locked_at&.in_time_zone("Eastern Time (US & Canada)")&.strftime("%a %b %d %-I:%M%p ET") %></td>
-          <td>
-            <%= button_to "Sync Field", sync_field_admin_tournament_path(t), method: :post, class: "btn btn-sm btn-secondary" %>
-            <%= button_to "Sync Results", sync_results_admin_tournament_path(t), method: :post, class: "btn btn-sm btn-secondary" %>
-          </td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-</section>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Wk</th>
+            <th>Tournament</th>
+            <th>Dates</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Picks Lock</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @tournaments.each do |t| %>
+            <tr class="status-<%= t.status %>">
+              <td><%= t.week_number %></td>
+              <td><%= link_to t.name, admin_tournament_path(t) %></td>
+              <td><%= t.start_date&.strftime("%b %d") %> – <%= t.end_date&.strftime("%b %d") %></td>
+              <td><%= t.tournament_type.humanize %></td>
+              <td>
+                <span class="badge bg-<%= t.status == 'in_progress' ? 'success' : t.status == 'completed' ? 'secondary' : 'primary' %>">
+                  <%= t.status.humanize %>
+                </span>
+              </td>
+              <td class="small text-muted">
+                <%= t.picks_locked_at&.in_time_zone("Eastern Time (US & Canada)")&.strftime("%a %b %d %-I:%M%p ET") %>
+              </td>
+              <td class="d-flex gap-1">
+                <%= button_to "Sync Field", sync_field_admin_tournament_path(t), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+                <%= button_to "Sync Results", sync_results_admin_tournament_path(t), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
