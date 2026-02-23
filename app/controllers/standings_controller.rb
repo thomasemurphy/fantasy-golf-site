@@ -62,27 +62,65 @@ class StandingsController < ApplicationController
   end
 
   def tournament_standings(tournament)
-    sort = @sort || "earnings"
-    dir  = @dir  || "desc"
+    sort = @sort || "score"
+    dir  = @dir  || "asc"
 
-    picks = Pick.where(tournament: tournament).includes(:user, :golfer).to_a
+    picks = Pick.where(tournament: tournament)
+                .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id
+                        AND tournament_results.golfer_id = picks.golfer_id")
+                .select("picks.*, tournament_results.current_position, " \
+                        "tournament_results.current_position_display, tournament_results.current_score_to_par")
+                .preload(:user, :golfer)
+                .to_a
 
-    picks.sort_by! do |p|
-      case sort
-      when "player"  then p.user.name
-      when "golfer"  then p.golfer.name
-      else                [p.earnings_cents || 0, p.user.name]
+    # --- Compute position-based display rank, independent of current sort ---
+    by_pos = picks.sort_by do |p|
+      cut = p.current_position_display == "CUT" ? 1 : 0
+      [cut, p.current_position || 9999, p.golfer_id, p.user.name]
+    end
+
+    rank_by_id = {}
+    rank = 1
+    by_pos.chunk_while { |a, b| a.current_position == b.current_position && !a.current_position.nil? }.each do |group|
+      if group.first.current_position.nil?
+        group.each { |p| rank_by_id[p.id] = "—" }
+      else
+        display = group.size > 1 ? "T#{rank}" : rank.to_s
+        group.each { |p| rank_by_id[p.id] = display }
+        rank += group.size
       end
     end
-    picks.reverse! if dir == "desc"
 
-    picks.map.with_index(1) do |pick, rank|
+    # --- Sort rows by user-selected column ---
+    picks.sort_by! do |p|
+      cut = p.current_position_display == "CUT" ? 1 : 0
+      case sort
+      when "player"   then [p.user.name]
+      when "golfer"   then [p.golfer.name]
+      when "earnings"
+        base = p.earnings_cents || 0
+        base = p.is_double_down? ? base / 2 : base
+        [cut, -base, p.golfer_id, p.user.name]
+      else # score
+        [cut, p.current_position || 9999, p.golfer_id, p.user.name]
+      end
+    end
+
+    picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
+    if dir == "desc" && %w[score earnings].include?(sort)
+      picks.reverse!
+      picks.sort_by!.with_index { |p, i| [p.current_position_display == "CUT" ? 1 : 0, i] }
+    end
+
+    picks.map do |pick|
       {
-        rank: rank,
-        user: pick.user,
-        golfer: pick.golfer,
-        pick: pick,
-        earnings_cents: pick.earnings_cents
+        rank:             rank_by_id[pick.id] || "—",
+        user:             pick.user,
+        golfer:           pick.golfer,
+        pick:             pick,
+        position_display: pick.current_position_display,
+        score_to_par:     pick.current_score_to_par,
+        earnings_cents:   pick.earnings_cents
       }
     end
   end

@@ -139,18 +139,20 @@
 <div class="standings-table-wrapper">
   <% if @tournament %>
     <% t_base = { tournament_id: @tournament.id } %>
+    <% cur_sort = @sort || "score"; cur_dir = @dir || "asc" %>
     <table class="standings-table">
       <thead>
         <tr>
           <th>Rank</th>
-          <th><%= sort_header("Player",   "player",   t_base, @sort || "earnings", @dir || "desc") %></th>
-          <th><%= sort_header("Golfer",   "golfer",   t_base, @sort || "earnings", @dir || "desc") %></th>
-          <th><%= sort_header("Earnings", "earnings", t_base, @sort || "earnings", @dir || "desc", natural_dir: "desc") %></th>
+          <th><%= sort_header("Player",   "player",   t_base, cur_sort, cur_dir) %></th>
+          <th><%= sort_header("Golfer",   "golfer",   t_base, cur_sort, cur_dir) %></th>
+          <th><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
+          <th><%= sort_header("Earnings", "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         </tr>
       </thead>
       <tbody>
         <% @standings.each do |row| %>
-          <tr class="<%= 'highlight' if row[:user] == current_user %>">
+          <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
             <td><span class="standings-rank"><%= row[:rank] %></span></td>
             <td><%= row[:user].name %></td>
             <td>
@@ -162,6 +164,7 @@
                 <span class="badge bg-secondary ms-1">Auto</span>
               <% end %>
             </td>
+            <td><%= format_score(row[:score_to_par]) %></td>
             <td>
               <% if row[:earnings_cents] %>
                 $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
