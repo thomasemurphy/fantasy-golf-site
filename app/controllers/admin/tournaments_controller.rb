@@ -18,23 +18,23 @@ class Admin::TournamentsController < Admin::BaseController
   end
 
   def sync_field
-    SyncTournamentFieldJob.perform_later(@tournament.id)
-    redirect_to admin_tournament_path(@tournament), notice: "Field sync queued."
+    SyncTournamentFieldJob.perform_now(@tournament.id)
+    redirect_to admin_tournament_path(@tournament), notice: "Field synced."
   end
 
   def sync_results
-    SyncTournamentResultsJob.perform_later(@tournament.id)
-    redirect_to admin_tournament_path(@tournament), notice: "Results sync queued."
+    SyncTournamentResultsJob.perform_now(@tournament.id)
+    redirect_to admin_tournament_path(@tournament), notice: "Results synced."
   end
 
   def sync_live
-    SyncLiveLeaderboardJob.perform_later(@tournament.id)
-    redirect_to admin_tournament_path(@tournament), notice: "Live sync queued."
+    SyncLiveLeaderboardJob.perform_now(@tournament.id)
+    redirect_to admin_tournament_path(@tournament), notice: "Live scores synced."
   end
 
   def sync_earnings
-    SyncTournamentEarningsJob.perform_later(@tournament.id)
-    redirect_to admin_tournament_path(@tournament), notice: "Earnings sync queued."
+    SyncTournamentEarningsJob.perform_now(@tournament.id)
+    redirect_to admin_tournament_path(@tournament), notice: "Earnings synced."
   end
 
   def earnings
