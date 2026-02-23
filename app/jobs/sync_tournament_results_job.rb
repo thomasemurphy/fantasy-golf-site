@@ -5,68 +5,83 @@ class SyncTournamentResultsJob < ApplicationJob
     tournament = if tournament_id
       Tournament.find(tournament_id)
     else
-      # Find the most recently completed / in-progress tournament
       Tournament.where(status: %w[in_progress completed])
-                .order(:end_date)
-                .last
+                .order(end_date: :desc)
+                .first
     end
 
     unless tournament
-      Rails.logger.info "[SyncTournamentResultsJob] No tournament to sync results for"
+      Rails.logger.info "[SyncTournamentResultsJob] No tournament to sync"
       return
     end
 
-    unless tournament.sportsdata_id.present?
-      Rails.logger.warn "[SyncTournamentResultsJob] Tournament #{tournament.id} has no sportsdata_id"
+    data = EspnGolf.new.current_leaderboard
+
+    unless data
+      Rails.logger.warn "[SyncTournamentResultsJob] No active ESPN event returned"
       return
     end
 
-    api = SportsDataIo.new
-    data = api.leaderboard(tournament.sportsdata_id)
+    # Sanity-check: verify ESPN is returning data for this tournament
+    unless data[:event_name].to_s.downcase.include?(tournament.name.split.last.downcase)
+      Rails.logger.warn "[SyncTournamentResultsJob] ESPN event '#{data[:event_name]}' " \
+                        "does not match tournament '#{tournament.name}' — skipping"
+      return
+    end
 
-    players = data["Players"] || []
-    is_over = data["IsOver"] || false
+    players = data[:players]
 
     ApplicationRecord.transaction do
-      players.each do |player_data|
-        sportsdata_player_id = player_data["PlayerID"]&.to_s
-        golfer = Golfer.find_by(sportsdata_id: sportsdata_player_id)
+      players.each do |p|
+        golfer = find_or_create_golfer(p[:name])
         next unless golfer
 
-        made_cut = player_data["MadeCut"]
-        position = player_data["Rank"]&.to_i
-        earnings = ((player_data["TotalEarnings"] || 0) * 100).to_i
-
-        result = TournamentResult.find_or_initialize_by(
-          tournament: tournament,
-          golfer: golfer
+        result = TournamentResult.find_or_initialize_by(tournament: tournament, golfer: golfer)
+        result.assign_attributes(
+          current_position:         p[:rank],
+          current_position_display: p[:position_display],
+          current_score_to_par:     p[:score_to_par],
+          current_thru:             p[:thru],
+          current_round:            p[:current_round],
+          made_cut:                 p[:made_cut]
         )
-        result.update!(
-          position: position,
-          earnings_cents: earnings,
-          made_cut: made_cut
-        )
+        result.save!
       end
 
-      # Update all picks for this tournament
+      # Sync made_cut onto picks so no-cut challenge tracking is accurate.
+      # Earnings are entered separately via the admin earnings form.
       tournament.picks.each do |pick|
         result = TournamentResult.find_by(tournament: tournament, golfer: pick.golfer)
         next unless result
-
-        pick.made_cut = result.made_cut
-        if pick.auto_assigned?
-          pick.earnings_cents = 0
-        else
-          base = result.earnings_cents || 0
-          pick.earnings_cents = pick.is_double_down? ? base * 2 : base
-        end
-        pick.save!
+        pick.update_column(:made_cut, result.made_cut)
       end
 
-      # Mark tournament as completed if the API says it's over
-      tournament.update!(status: "completed") if is_over
+      if data[:completed] && tournament.status == "in_progress"
+        tournament.update!(status: "completed")
+        Rails.logger.info "[SyncTournamentResultsJob] Marked #{tournament.name} as completed"
+      end
     end
 
     Rails.logger.info "[SyncTournamentResultsJob] Synced results for #{tournament.name} (#{players.size} players)"
+  end
+
+  private
+
+  def find_or_create_golfer(espn_name)
+    find_golfer(espn_name) || Golfer.create!(name: espn_name)
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "[SyncTournamentResultsJob] Could not create golfer '#{espn_name}': #{e.message}"
+    nil
+  end
+
+  def find_golfer(espn_name)
+    return Golfer.find_by(name: espn_name) if Golfer.exists?(name: espn_name)
+
+    normalized = espn_name.gsub(".", "").squeeze(" ").strip
+    return Golfer.find_by(name: normalized) if Golfer.exists?(name: normalized)
+
+    last_name = espn_name.split.last
+    matches   = Golfer.where("name ILIKE ?", "%#{last_name}")
+    matches.first if matches.one?
   end
 end

@@ -11,6 +11,13 @@
   <%= @tournament.start_date&.strftime("%b %d") %> – <%= @tournament.end_date&.strftime("%b %d") %>
 </p>
 
+<% if @tournament.status == "completed" && @picks.any? && @picks.all? { |p| p.earnings_cents.nil? } %>
+  <div class="alert alert-warning d-flex align-items-center gap-3">
+    <span>&#9888;&#xFE0F; Tournament completed but no earnings have been entered yet.</span>
+    <%= link_to "Enter Earnings →", earnings_admin_tournament_path(@tournament), class: "btn btn-warning btn-sm ms-auto" %>
+  </div>
+<% end %>
+
 <div class="d-flex gap-2 mb-4 flex-wrap">
   <%= button_to "Sync Field", sync_field_admin_tournament_path(@tournament), method: :post, class: "btn btn-outline-secondary" %>
   <%= button_to "Sync Results", sync_results_admin_tournament_path(@tournament), method: :post, class: "btn btn-outline-secondary" %>
