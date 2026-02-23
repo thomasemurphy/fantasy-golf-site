@@ -9,10 +9,10 @@ class SyncTournamentEarningsJob < ApplicationJob
       return
     end
 
-    payouts = PgaTourScraper.new.payouts(tournament.pgatour_id)
+    results = PgaTourScraper.new.results(tournament.pgatour_id)
 
-    if payouts.empty?
-      Rails.logger.warn "[SyncTournamentEarningsJob] No payout data returned for #{tournament.name}"
+    if results.empty?
+      Rails.logger.warn "[SyncTournamentEarningsJob] No results data returned for #{tournament.name}"
       return
     end
 
@@ -20,26 +20,32 @@ class SyncTournamentEarningsJob < ApplicationJob
     unmatched = []
 
     ApplicationRecord.transaction do
-      payouts.each do |payout|
-        next if payout[:earnings_cents] == 0 && payout[:position] == "CUT"
-
-        golfer = find_golfer(payout[:name])
+      results.each do |r|
+        golfer = find_golfer(r[:name])
         unless golfer
-          unmatched << payout[:name]
+          unmatched << r[:name]
           next
         end
 
-        result = TournamentResult.find_by(tournament: tournament, golfer: golfer)
-        unless result
-          unmatched << "#{payout[:name]} (no result row)"
+        tr = TournamentResult.find_by(tournament: tournament, golfer: golfer)
+        unless tr
+          unmatched << "#{r[:name]} (no result row)"
           next
         end
 
-        result.update!(earnings_cents: payout[:earnings_cents])
+        # Overwrite ESPN live data with authoritative PGA Tour final results
+        tr.update!(
+          current_position:         r[:position],
+          current_position_display: r[:position_display],
+          current_score_to_par:     r[:score_to_par],
+          current_thru:             "F",
+          made_cut:                 r[:made_cut],
+          earnings_cents:           r[:earnings_cents]
+        )
         matched += 1
       end
 
-      # Re-save all picks to trigger Pick#calculate_earnings
+      # Re-save all picks to trigger Pick#calculate_earnings and sync made_cut
       tournament.picks.each(&:save!)
     end
 
