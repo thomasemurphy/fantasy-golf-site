@@ -3,6 +3,11 @@
 <h1 class="mb-4">Standings</h1>
 
 <ul class="nav nav-pills mb-2" role="tablist">
+  <% if @live_tournament %>
+    <%= link_to standings_path(tab: "live"), class: "nav-link #{'active' if @tab == 'live'}" do %>
+      <span class="text-danger fw-bold">&#9679;</span> Live
+    <% end %>
+  <% end %>
   <%= link_to "Overall",     standings_path(tab: "overall"),      class: "nav-link #{'active' if @tournament.nil? && @tab == 'overall'}" %>
   <%= link_to "Majors",      standings_path(tab: "majors"),       class: "nav-link #{'active' if @tournament.nil? && @tab == 'majors'}" %>
   <%= link_to "Side Events", standings_path(tab: "side_events"),  class: "nav-link #{'active' if @tournament.nil? && @tab == 'side_events'}" %>
@@ -13,23 +18,134 @@
 <% if @completed_tournaments.any? %>
   <ul class="nav nav-pills nav-pills-sm flex-wrap mb-4" role="tablist">
     <% @completed_tournaments.each do |t| %>
-      <%= link_to standings_path(tournament_id: t.id),
-            class: "nav-link nav-link-sm #{'active' if @tournament&.id == t.id}" do %>
+      <% live = t.status == "in_progress" %>
+      <%= link_to live ? standings_path(tab: "live") : standings_path(tournament_id: t.id),
+            class: "nav-link nav-link-sm #{'active' if live ? @tab == 'live' : @tournament&.id == t.id}" do %>
         <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><%= t.name %>
       <% end %>
     <% end %>
   </ul>
 <% end %>
 
+<% if @tab == "live" && @live_tournament %>
+  <meta http-equiv="refresh" content="300">
+
+  <% live_base = { tab: "live", view: @live_view } %>
+  <% cur_sort = @sort || "score"; cur_dir = @dir || "asc" %>
+
+  <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+      <h5 class="mb-0"><%= @live_tournament.name %></h5>
+      <span class="badge bg-success">In Progress</span>
+    </div>
+    <div class="btn-group btn-group-sm ms-auto" role="group">
+      <%= link_to standings_path(tab: "live", view: "pool"),
+            class: "btn btn-outline-secondary #{'active' if @live_view == 'pool'}" do %>
+        Pool Players
+      <% end %>
+      <%= link_to standings_path(tab: "live", view: "field"),
+            class: "btn btn-outline-secondary #{'active' if @live_view == 'field'}" do %>
+        All Golfers
+      <% end %>
+    </div>
+  </div>
+
+  <% if @live_view == "pool" %>
+    <% if @live_standings.empty? %>
+      <div class="alert alert-info">Live scores not yet available — check back soon.</div>
+    <% else %>
+      <div class="standings-table-wrapper">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th><%= sort_header("Player",   "player",   live_base, cur_sort, cur_dir) %></th>
+              <th><%= sort_header("Golfer",   "golfer",   live_base, cur_sort, cur_dir) %></th>
+              <th><%= sort_header("Pos",      "pos",      live_base, cur_sort, cur_dir) %></th>
+              <th><%= sort_header("Score",    "score",    live_base, cur_sort, cur_dir) %></th>
+              <th><%= sort_header("Thru",     "thru",     live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+              <th><%= sort_header("Proj. Earnings", "earnings", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @live_standings.each do |row| %>
+              <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
+                <td><span class="standings-rank"><%= row[:rank] %></span></td>
+                <td><%= row[:user].name %></td>
+                <td>
+                  <%= row[:golfer].name %>
+                  <% if row[:pick].is_double_down? %>
+                    <span class="badge bg-warning text-dark ms-1">2x</span>
+                  <% end %>
+                  <% if row[:pick].auto_assigned? %>
+                    <span class="badge bg-secondary ms-1">Auto</span>
+                  <% end %>
+                </td>
+                <td><%= row[:position_display].presence || "—" %></td>
+                <td><%= format_score(row[:score_to_par]) %></td>
+                <td><%= row[:thru].presence || "—" %></td>
+                <td>
+                  <% if row[:current_earnings_cents]&.positive? %>
+                    $<%= number_with_delimiter((row[:current_earnings_cents] / 100.0).to_i) %>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+
+  <% else %> <%# field view %>
+    <% if @field_standings.empty? %>
+      <div class="alert alert-info">Live scores not yet available — check back soon.</div>
+    <% else %>
+      <div class="standings-table-wrapper">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th><%= sort_header("Pos",    "pos",    live_base, cur_sort, cur_dir) %></th>
+              <th><%= sort_header("Golfer", "golfer", live_base, cur_sort, cur_dir) %></th>
+              <th><%= sort_header("Score",  "score",  live_base, cur_sort, cur_dir) %></th>
+              <th><%= sort_header("Thru",   "thru",   live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+              <th>Picked By</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @field_standings.each do |row| %>
+              <% picked_by_me = row[:picks].any? { |p| p.user == current_user } %>
+              <tr class="<%= 'highlight' if picked_by_me %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
+                <td><%= row[:position_display].presence || "—" %></td>
+                <td><%= row[:golfer].name %></td>
+                <td><%= format_score(row[:score_to_par]) %></td>
+                <td><%= row[:thru].presence || "—" %></td>
+                <td class="text-muted" style="font-size:0.875em">
+                  <% row[:picks].each_with_index do |pick, i| %>
+                    <%= pick.user.name %><% if pick.is_double_down? %>&nbsp;<span class="badge bg-warning text-dark">2x</span><% end %><%= i < row[:picks].size - 1 ? ", " : "" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% unless @tab == "live" %>
 <div class="standings-table-wrapper">
   <% if @tournament %>
+    <% t_base = { tournament_id: @tournament.id } %>
     <table class="standings-table">
       <thead>
         <tr>
           <th>Rank</th>
-          <th>Player</th>
-          <th>Golfer</th>
-          <th>Earnings</th>
+          <th><%= sort_header("Player",   "player",   t_base, @sort || "earnings", @dir || "desc") %></th>
+          <th><%= sort_header("Golfer",   "golfer",   t_base, @sort || "earnings", @dir || "desc") %></th>
+          <th><%= sort_header("Earnings", "earnings", t_base, @sort || "earnings", @dir || "desc", natural_dir: "desc") %></th>
         </tr>
       </thead>
       <tbody>
@@ -46,18 +162,26 @@
                 <span class="badge bg-secondary ms-1">Auto</span>
               <% end %>
             </td>
-            <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+            <td>
+              <% if row[:earnings_cents] %>
+                $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
+              <% else %>
+                <span class="text-muted">—</span>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>
     </table>
   <% else %>
+    <% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
     <table class="standings-table">
       <thead>
         <tr>
           <th>Rank</th>
           <th>Player</th>
           <th>Earnings</th>
+          <th>No-Cut Challenge</th>
         </tr>
       </thead>
       <tbody>
@@ -65,23 +189,24 @@
           <tr class="<%= 'highlight' if row[:user] == current_user %>">
             <td><span class="standings-rank"><%= row[:rank] %></span></td>
             <td><%= row[:user].name %></td>
-            <td>$<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %></td>
+            <td>
+              <% if row[:earnings_cents] %>
+                $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
+              <% else %>
+                <span class="text-muted">—</span>
+              <% end %>
+            </td>
+            <td>
+              <% if no_cut_alive_ids.include?(row[:user].id) %>
+                <span class="text-success fw-semibold">Still Alive</span>
+              <% else %>
+                <span class="text-muted">Toast</span>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>
     </table>
   <% end %>
 </div>
-
-<% if @no_cut_users.any? %>
-  <div class="card">
-    <div class="card-body">
-      <h5 class="card-title">No-Cut Challenge — Still Alive 🏆</h5>
-      <ul class="list-unstyled mb-0">
-        <% @no_cut_users.each do |user| %>
-          <li><%= user.name %></li>
-        <% end %>
-      </ul>
-    </div>
-  </div>
 <% end %>

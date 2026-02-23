@@ -20,6 +20,9 @@ Rails.application.routes.draw do
       member do
         post :sync_field
         post :sync_results
+        post :sync_live
+        get  :earnings
+        post :update_earnings
       end
     end
     resources :picks, only: %i[index show]

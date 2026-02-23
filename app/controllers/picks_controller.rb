@@ -2,10 +2,12 @@ class PicksController < ApplicationController
   before_action :set_current_tournament, only: %i[index create]
 
   def index
-    @picks = current_user.picks.includes(:tournament, :golfer).order("tournaments.start_date desc")
     @current_pick = current_user.picks.find_by(tournament: @current_tournament) if @current_tournament
     @available_golfers = available_golfers_for_current_tournament if @current_tournament
-    @past_picks = @picks.joins(:tournament).where(tournaments: { status: "completed" })
+    @past_picks = current_user.picks
+                              .eager_load(:tournament, :golfer)
+                              .where(tournaments: { status: "completed" })
+                              .order("tournaments.start_date desc")
   end
 
   def create
@@ -33,7 +35,10 @@ class PicksController < ApplicationController
       redirect_to picks_path, notice: "Pick submitted: #{@pick.golfer.name}#{' (double-down)' if @pick.is_double_down?}"
     else
       @available_golfers = available_golfers_for_current_tournament
-      @picks = current_user.picks.includes(:tournament, :golfer).order("tournaments.start_date desc")
+      @past_picks = current_user.picks
+                                .eager_load(:tournament, :golfer)
+                                .where(tournaments: { status: "completed" })
+                                .order("tournaments.start_date desc")
       flash.now[:alert] = @pick.errors.full_messages.to_sentence
       render :index, status: :unprocessable_entity
     end

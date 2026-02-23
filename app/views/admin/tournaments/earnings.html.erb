@@ -1,0 +1,67 @@
+<% content_for :title, "Enter Earnings — #{@tournament.name}" %>
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <h1 class="mb-0">Enter Earnings — <%= @tournament.name %></h1>
+</div>
+
+<% if @results.empty? %>
+  <div class="alert alert-warning">No tournament results found. Run a live sync first to populate the field.</div>
+<% else %>
+  <%= form_with url: update_earnings_admin_tournament_path(@tournament), method: :post do |f| %>
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center gap-3">
+        <span>Final Earnings by Golfer (<%= @results.count %> players)</span>
+        <div class="form-check ms-auto mb-0">
+          <input class="form-check-input" type="checkbox" name="mark_completed" value="1" id="mark_completed"
+                 <%= @tournament.status == "completed" ? "checked" : "" %>>
+          <label class="form-check-label fw-semibold" for="mark_completed">
+            Mark tournament as Completed
+          </label>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Pos</th>
+                <th>Golfer</th>
+                <th>Picked By</th>
+                <th style="width: 160px">Earnings ($)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @results.each do |result| %>
+                <tr class="<%= 'table-danger' if result.current_position_display == 'CUT' %>">
+                  <td class="text-muted"><%= result.current_position_display.presence || "—" %></td>
+                  <td><%= result.golfer.name %></td>
+                  <td class="text-muted" style="font-size: 0.85em">
+                    <% pickers = @picks_by_golfer[result.golfer_id] || [] %>
+                    <% pickers.each_with_index do |pick, i| %>
+                      <%= pick.user.name %><% if pick.is_double_down? %>&nbsp;<span class="badge bg-warning text-dark">2x</span><% end %><%= i < pickers.size - 1 ? ", " : "" %>
+                    <% end %>
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text">$</span>
+                      <input type="number" name="earnings[<%= result.id %>]" step="1" min="0"
+                             class="form-control"
+                             value="<%= result.earnings_cents ? (result.earnings_cents / 100.0).to_i : '' %>"
+                             placeholder="0"
+                             <%= result.current_position_display == "CUT" ? 'disabled' : '' %>>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= f.submit "Save Earnings & Update Picks", class: "btn btn-primary" %>
+      <%= link_to "Cancel", admin_tournament_path(@tournament), class: "btn btn-outline-secondary" %>
+    </div>
+  <% end %>
+<% end %>

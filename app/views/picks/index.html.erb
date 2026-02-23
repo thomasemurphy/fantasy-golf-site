@@ -78,55 +78,67 @@
   <div class="alert alert-info">No active tournament right now. Check back soon!</div>
 <% end %>
 
-<div class="card">
-  <div class="card-body">
-    <h5 class="card-title mb-1">Season History</h5>
-    <p class="text-muted mb-3">
-      Double-downs remaining: <strong><%= current_user.double_downs_remaining %></strong> / 5
-      &nbsp;&middot;&nbsp;
-      Total earned: <strong>$<%= number_with_delimiter((current_user.total_earnings_cents / 100.0).to_i) %></strong>
-    </p>
-
-    <% if @picks.any? %>
-      <div class="table-responsive">
-        <table class="table table-hover table-sm">
-          <thead class="table-light">
-            <tr>
-              <th>Wk</th>
-              <th>Tournament</th>
-              <th>Golfer</th>
-              <th>2x</th>
-              <th>Made Cut?</th>
-              <th>Earned</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @picks.order("tournaments.start_date desc").each do |pick| %>
-              <tr>
-                <td><%= pick.tournament.week_number %></td>
-                <td><%= pick.tournament.name %></td>
-                <td><%= pick.golfer.name %></td>
-                <td><%= pick.is_double_down? ? "✓" : "" %></td>
-                <td>
-                  <% if pick.made_cut.nil? %>—
-                  <% elsif pick.made_cut? %><span class="text-success">✓</span>
-                  <% else %><span class="text-danger">✗</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% if pick.earnings_cents.nil? %>—
-                  <% else %>$<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %>
-                  <% end %>
-                </td>
-                <td><%= pick.auto_assigned? ? '<span class="badge bg-secondary">Auto</span>'.html_safe : "" %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p class="text-muted">No picks yet this season.</p>
-    <% end %>
-  </div>
+<%# Season results %>
+<div class="d-flex align-items-baseline gap-4 mb-3">
+  <h2 class="mb-0">Season Results</h2>
+  <span class="text-muted small"><%= current_user.double_downs_remaining %> / 5 double-downs remaining</span>
 </div>
+
+<% if @past_picks.any? %>
+  <div class="standings-table-wrapper">
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th>Wk</th>
+          <th>Tournament</th>
+          <th>Golfer</th>
+          <th>Result</th>
+          <th>Earnings</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @past_picks.each do |pick| %>
+          <tr>
+            <td><span class="standings-rank"><%= pick.tournament.week_number %></span></td>
+            <td><%= link_to pick.tournament.name, standings_path(tournament_id: pick.tournament.id) %></td>
+            <td>
+              <%= pick.golfer.name %>
+              <% if pick.is_double_down? %>
+                <span class="badge bg-warning text-dark ms-1">2x</span>
+              <% end %>
+              <% if pick.auto_assigned? %>
+                <span class="badge bg-secondary ms-1">Auto</span>
+              <% end %>
+            </td>
+            <td>
+              <% if pick.made_cut.nil? %>
+                <span class="text-muted">—</span>
+              <% elsif pick.made_cut? %>
+                <span class="text-success fw-semibold">Made cut</span>
+              <% else %>
+                <span class="text-danger fw-semibold">Missed cut</span>
+              <% end %>
+            </td>
+            <td>
+              <% if pick.earnings_cents.nil? %>
+                <span class="text-muted">—</span>
+              <% elsif pick.earnings_cents > 0 %>
+                <span class="text-success fw-semibold">$<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %></span>
+              <% else %>
+                <span class="text-muted">$0</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr class="picks-total-row">
+          <td colspan="4" class="text-end fw-semibold">Season Total</td>
+          <td class="fw-bold">$<%= number_with_delimiter((current_user.total_earnings_cents / 100.0).to_i) %></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+<% else %>
+  <p class="text-muted">No completed tournaments yet.</p>
+<% end %>

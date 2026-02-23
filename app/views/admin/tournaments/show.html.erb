@@ -11,9 +11,13 @@
   <%= @tournament.start_date&.strftime("%b %d") %> – <%= @tournament.end_date&.strftime("%b %d") %>
 </p>
 
-<div class="d-flex gap-2 mb-4">
+<div class="d-flex gap-2 mb-4 flex-wrap">
   <%= button_to "Sync Field", sync_field_admin_tournament_path(@tournament), method: :post, class: "btn btn-outline-secondary" %>
   <%= button_to "Sync Results", sync_results_admin_tournament_path(@tournament), method: :post, class: "btn btn-outline-secondary" %>
+  <% if @tournament.status == "in_progress" %>
+    <%= button_to "Sync Live Scores", sync_live_admin_tournament_path(@tournament), method: :post, class: "btn btn-outline-success" %>
+  <% end %>
+  <%= link_to "Enter Earnings", earnings_admin_tournament_path(@tournament), class: "btn btn-outline-primary" %>
 </div>
 
 <div class="row">

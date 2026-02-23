@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_21_055506) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_22_225100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,6 +52,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_055506) do
 
   create_table "tournament_results", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.bigint "current_earnings_cents"
+    t.integer "current_position"
+    t.string "current_position_display"
+    t.integer "current_round"
+    t.integer "current_score_to_par"
+    t.string "current_thru"
     t.bigint "earnings_cents", default: 0
     t.bigint "golfer_id", null: false
     t.boolean "made_cut", default: false, null: false
