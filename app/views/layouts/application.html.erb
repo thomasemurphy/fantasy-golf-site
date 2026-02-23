@@ -21,7 +21,7 @@
   <body>
     <nav class="navbar navbar-expand-md mb-4" data-controller="theme">
       <div class="container-fluid">
-        <%= link_to "🏌️ The Feeley Tour Cup", root_path, class: "navbar-brand" %>
+        <%= link_to "🏌️ Feeley Tour Cup", root_path, class: "navbar-brand" %>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
                 aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -30,14 +30,14 @@
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             <% if user_signed_in? %>
               <li class="nav-item">
-                <%= link_to "My Picks", picks_path, class: "nav-link #{'active' if controller_name == 'picks'}" %>
+                <%= link_to "My Picks", picks_path, class: "nav-link #{'active nav-link-active' if controller_name == 'picks'}" %>
               </li>
               <li class="nav-item">
-                <%= link_to "Standings", standings_path, class: "nav-link #{'active' if controller_name == 'standings'}" %>
+                <%= link_to "Standings", standings_path, class: "nav-link #{'active nav-link-active' if controller_name == 'standings'}" %>
               </li>
               <% if current_user.admin? %>
                 <li class="nav-item">
-                  <%= link_to "Admin", admin_root_path, class: "nav-link #{'active' if controller_name.start_with?('admin')}" %>
+                  <%= link_to "Admin", admin_root_path, class: "nav-link #{'active nav-link-active' if controller_name.start_with?('admin')}" %>
                 </li>
               <% end %>
             <% end %>

@@ -146,3 +146,18 @@
 /* Tournament status row tints */
 tr.status-in_progress { background-color: #f0fff4; }
 tr.status-completed   { color: #6c757d; }
+
+/* Active nav link — slightly larger and bolder */
+.navbar .nav-link-active {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+[data-bs-theme="dark"] .navbar .nav-link-active {
+  color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .navbar .nav-link-active,
+.navbar .nav-link-active {
+  color: #000000 !important;
+}

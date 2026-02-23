@@ -1,7 +1,5 @@
 <% content_for :title, "Standings — The Feeley Tour Cup" %>
 
-<h1 class="mb-4">Standings</h1>
-
 <ul class="nav nav-pills mb-2" role="tablist">
   <% if @live_tournament %>
     <%= link_to standings_path(tab: "live"), class: "nav-link #{'active' if @tab == 'live'}" do %>
