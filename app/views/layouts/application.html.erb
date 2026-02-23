@@ -100,6 +100,14 @@
         </div>
       <% end %>
 
+      <% if current_user&.admin? && controller.class.name.start_with?("Admin::") %>
+        <nav class="nav nav-pills mb-4 border-bottom pb-3">
+          <%= link_to "Users",       admin_users_path,       class: "nav-link #{'active' if controller_name == 'users'}" %>
+          <%= link_to "Tournaments", admin_tournaments_path, class: "nav-link #{'active' if controller_name == 'tournaments'}" %>
+          <%= link_to "Picks",       admin_picks_path,       class: "nav-link #{'active' if controller_name == 'picks'}" %>
+        </nav>
+      <% end %>
+
       <%= yield %>
     </div>
   </body>
