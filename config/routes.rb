@@ -23,6 +23,7 @@ Rails.application.routes.draw do
         post :sync_live
         get  :earnings
         post :update_earnings
+        post :sync_earnings
       end
     end
     resources :picks, only: %i[index show]

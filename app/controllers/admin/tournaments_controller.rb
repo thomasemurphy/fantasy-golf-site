@@ -1,5 +1,5 @@
 class Admin::TournamentsController < Admin::BaseController
-  before_action :set_tournament, only: %i[show update sync_field sync_results sync_live earnings update_earnings]
+  before_action :set_tournament, only: %i[show update sync_field sync_results sync_live earnings update_earnings sync_earnings]
 
   def index
     @tournaments = Tournament.order(:week_number)
@@ -30,6 +30,11 @@ class Admin::TournamentsController < Admin::BaseController
   def sync_live
     SyncLiveLeaderboardJob.perform_later(@tournament.id)
     redirect_to admin_tournament_path(@tournament), notice: "Live sync queued."
+  end
+
+  def sync_earnings
+    SyncTournamentEarningsJob.perform_later(@tournament.id)
+    redirect_to admin_tournament_path(@tournament), notice: "Earnings sync queued."
   end
 
   def earnings
@@ -64,6 +69,7 @@ class Admin::TournamentsController < Admin::BaseController
 
   def tournament_params
     params.require(:tournament).permit(:name, :start_date, :end_date, :purse_cents,
-                                       :tournament_type, :status, :week_number, :picks_locked_at)
+                                       :tournament_type, :status, :week_number, :picks_locked_at,
+                                       :pgatour_id)
   end
 end
