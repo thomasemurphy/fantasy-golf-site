@@ -1,4 +1,3 @@
-<% content_for :title, "Standings — The Feeley Tour Cup" %>
 
 <ul class="nav nav-pills mb-2" role="tablist">
   <% if @live_tournament %>
@@ -144,6 +143,7 @@
           <th>Rank</th>
           <th><%= sort_header("Player",   "player",   t_base, cur_sort, cur_dir) %></th>
           <th><%= sort_header("Golfer",   "golfer",   t_base, cur_sort, cur_dir) %></th>
+          <th><%= sort_header("Pos",      "pos",      t_base, cur_sort, cur_dir) %></th>
           <th><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
           <th><%= sort_header("Earnings", "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         </tr>
@@ -162,6 +162,7 @@
                 <span class="badge bg-secondary ms-1">Auto</span>
               <% end %>
             </td>
+            <td><%= row[:position_display].presence || "—" %></td>
             <td><%= format_score(row[:score_to_par]) %></td>
             <td>
               <% if row[:earnings_cents] %>

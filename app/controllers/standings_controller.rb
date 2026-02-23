@@ -97,6 +97,7 @@ class StandingsController < ApplicationController
       case sort
       when "player"   then [p.user.name]
       when "golfer"   then [p.golfer.name]
+      when "pos"      then [cut, p.current_position || 9999, p.golfer_id, p.user.name]
       when "earnings"
         base = p.earnings_cents || 0
         base = p.is_double_down? ? base / 2 : base
