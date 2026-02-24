@@ -39,7 +39,7 @@ class StandingsController < ApplicationController
   private
 
   def compute_standings(tab)
-    users = User.where(approved: true).includes(:picks)
+    users = User.where(approved: true).where.not(name: "Commissioner").includes(:picks)
 
     ranked = case tab
     when "majors"
@@ -225,6 +225,6 @@ class StandingsController < ApplicationController
   end
 
   def no_cut_survivors
-    User.where(approved: true).select(&:no_cut_streak_alive?)
+    User.where(approved: true).where.not(name: "Commissioner").select(&:no_cut_streak_alive?)
   end
 end
