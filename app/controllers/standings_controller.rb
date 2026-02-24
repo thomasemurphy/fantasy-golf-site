@@ -52,8 +52,8 @@ class StandingsController < ApplicationController
   end
 
   def tournament_standings(tournament)
-    sort = @sort || "score"
-    dir  = @dir  || "asc"
+    sort = @sort || "earnings"
+    dir  = @dir  || "desc"
 
     picks = Pick.where(tournament: tournament)
                 .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id
@@ -91,7 +91,7 @@ class StandingsController < ApplicationController
       when "earnings"
         base = p.earnings_cents || 0
         base = p.is_double_down? ? base / 2 : base
-        [cut, -base, p.golfer_id, p.user.name]
+        [cut, -base, p.user.name]
       else # score
         [cut, p.current_position || 9999, p.golfer_id, p.user.name]
       end
