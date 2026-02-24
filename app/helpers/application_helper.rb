@@ -1,4 +1,16 @@
 module ApplicationHelper
+  # Shortens a tournament name for compact display (e.g. tooltip columns)
+  def short_tournament_name(name)
+    n = name.dup
+    return "U.S. Open" if n == "U.S. Open"
+    n.sub!(/^The\s+/, "")
+    n.sub!(/\s+at\s+.+$/, "")
+    n.sub!(/\s+of\s+.+$/, "")
+    n.sub!(/^Texas\s+Children's\s+/, "")
+    n.sub!(/\s+(Championship|Invitational|Tournament|Classic|Open|Challenge)$/, "")
+    n.strip
+  end
+
   # Formats a score-to-par integer for display: nil → "—", 0 → "E", -8 → "-8", 2 → "+2"
   def format_score(score)
     return content_tag(:span, "—", class: "text-muted") if score.nil?

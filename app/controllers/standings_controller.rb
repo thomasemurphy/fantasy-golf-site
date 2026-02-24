@@ -39,7 +39,12 @@ class StandingsController < ApplicationController
   private
 
   def compute_standings(tab)
-    users = User.where(approved: true).where.not(name: "Commissioner").includes(:picks)
+    users = User.where(approved: true).where.not(name: "Commissioner")
+                .includes(picks: [:golfer, :tournament])
+
+    completed_tid = Tournament.where(status: "completed").pluck(:id)
+    results_index = TournamentResult.where(tournament_id: completed_tid)
+                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
 
     sorted = users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
 
@@ -47,7 +52,17 @@ class StandingsController < ApplicationController
     sorted.chunk_while { |a, b| earnings_for_tab(a, tab) == earnings_for_tab(b, tab) }.flat_map do |group|
       display = group.size > 1 ? "T#{rank}" : rank.to_s
       rank += group.size
-      group.map { |user| { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab) } }
+      group.map do |user|
+        completed_picks = user.picks
+                              .select { |p| p.tournament.status == "completed" }
+                              .sort_by { |p| p.tournament.week_number }
+                              .map { |p|
+                                result = results_index[[p.tournament_id, p.golfer_id]]
+                                { pick: p, position: result&.current_position_display }
+                              }
+        total_earnings = user.picks.sum { |p| p.earnings_cents.to_i }
+        { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings }
+      end
     end
   end
 
@@ -62,6 +77,24 @@ class StandingsController < ApplicationController
                         "tournament_results.current_position_display, tournament_results.current_score_to_par")
                 .preload(:user, :golfer)
                 .to_a
+
+    # Preload pick history for tooltip
+    user_ids = picks.map { |p| p.user_id }.uniq
+    completed_tid = Tournament.where(status: "completed").pluck(:id)
+    results_index = TournamentResult.where(tournament_id: completed_tid)
+                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
+    history_picks = Pick.where(user_id: user_ids, tournament_id: completed_tid)
+                        .includes(:golfer, :tournament)
+                        .to_a
+                        .group_by(&:user_id)
+    history_by_user = history_picks.transform_values do |user_picks|
+      user_picks.sort_by { |p| p.tournament.week_number }
+                .map { |p|
+                  result = results_index[[p.tournament_id, p.golfer_id]]
+                  { pick: p, position: result&.current_position_display }
+                }
+    end
+    total_earnings_by_user = history_picks.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
 
     # --- Compute earnings-based display rank, independent of current sort ---
     cut_val = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
@@ -105,13 +138,15 @@ class StandingsController < ApplicationController
 
     picks.map do |pick|
       {
-        rank:             rank_by_id[pick.id] || "—",
-        user:             pick.user,
-        golfer:           pick.golfer,
-        pick:             pick,
-        position_display: pick.current_position_display,
-        score_to_par:     pick.current_score_to_par,
-        earnings_cents:   pick.earnings_cents
+        rank:                  rank_by_id[pick.id] || "—",
+        user:                  pick.user,
+        golfer:                pick.golfer,
+        pick:                  pick,
+        position_display:      pick.current_position_display,
+        score_to_par:          pick.current_score_to_par,
+        earnings_cents:        pick.earnings_cents,
+        completed_picks:       history_by_user[pick.user_id] || [],
+        total_earnings_cents:  total_earnings_by_user[pick.user_id] || 0
       }
     end
   end

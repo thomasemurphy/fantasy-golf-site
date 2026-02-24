@@ -152,7 +152,46 @@
         <% @standings.each do |row| %>
           <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
             <td><span class="standings-rank"><%= row[:rank] %></span></td>
-            <td><%= row[:user].name %></td>
+            <td>
+              <% if row[:completed_picks]&.any? %>
+                <% ttl = row[:total_earnings_cents].to_i %>
+                <span data-controller="tooltip"
+                      data-tooltip-title-value="<%= row[:user].name %>"
+                      <% if ttl > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl / 100.0).to_i) %>"<% end %>>
+                  <span data-tooltip-target="trigger"
+                        data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
+                        class="pick-history-name"><%= row[:user].name %></span>
+                  <span data-tooltip-target="content" style="display:none">
+                    <table style="border-spacing:0;line-height:1.9">
+                      <% row[:completed_picks].each do |cp| %>
+                        <% pick = cp[:pick] %>
+                        <tr>
+                          <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= pick.tournament.week_number %></td>
+                          <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(pick.tournament.name) %></td>
+                          <td style="padding-right:12px;white-space:nowrap">
+                            <%= pick.golfer.name %>
+                            <% if pick.is_double_down? %><span style="color:#b8860b;font-size:10px;font-weight:600">2x</span><% end %>
+                            <% if pick.auto_assigned? %><span style="color:#aaa;font-size:10px">(auto)</span><% end %>
+                          </td>
+                          <td style="padding-right:12px;white-space:nowrap;color:#6c757d"><%= cp[:position] || "—" %></td>
+                          <td style="text-align:right;white-space:nowrap">
+                            <% if pick.auto_assigned? %>
+                              <span style="color:#aaa">$0</span>
+                            <% elsif pick.earnings_cents.to_i > 0 %>
+                              $<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %>
+                            <% else %>
+                              <span style="color:#aaa">$0</span>
+                            <% end %>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </table>
+                  </span>
+                </span>
+              <% else %>
+                <%= row[:user].name %>
+              <% end %>
+            </td>
             <td>
               <%= row[:golfer].name %>
               <% if row[:pick].is_double_down? %>
@@ -191,7 +230,46 @@
         <% @standings.each do |row| %>
           <tr class="<%= 'highlight' if row[:user] == current_user %>">
             <td><span class="standings-rank"><%= row[:rank] %></span></td>
-            <td><%= row[:user].name %></td>
+            <td>
+              <% if row[:completed_picks].any? %>
+                <% ttl_earnings = row[:total_earnings_cents].to_i %>
+                <span data-controller="tooltip"
+                      data-tooltip-title-value="<%= row[:user].name %>"
+                      <% if ttl_earnings > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl_earnings / 100.0).to_i) %>"<% end %>>
+                  <span data-tooltip-target="trigger"
+                        data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
+                        class="pick-history-name"><%= row[:user].name %></span>
+                  <span data-tooltip-target="content" style="display:none">
+                    <table style="border-spacing:0;line-height:1.9">
+                      <% row[:completed_picks].each do |cp| %>
+                        <% pick = cp[:pick] %>
+                        <tr>
+                          <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= pick.tournament.week_number %></td>
+                          <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(pick.tournament.name) %></td>
+                          <td style="padding-right:12px;white-space:nowrap">
+                            <%= pick.golfer.name %>
+                            <% if pick.is_double_down? %><span style="color:#b8860b;font-size:10px;font-weight:600">2x</span><% end %>
+                            <% if pick.auto_assigned? %><span style="color:#aaa;font-size:10px">(auto)</span><% end %>
+                          </td>
+                          <td style="padding-right:12px;white-space:nowrap;color:#6c757d"><%= cp[:position] || "—" %></td>
+                          <td style="text-align:right;white-space:nowrap">
+                            <% if pick.auto_assigned? %>
+                              <span style="color:#aaa">$0</span>
+                            <% elsif pick.earnings_cents.to_i > 0 %>
+                              $<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %>
+                            <% else %>
+                              <span style="color:#aaa">$0</span>
+                            <% end %>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </table>
+                  </span>
+                </span>
+              <% else %>
+                <%= row[:user].name %>
+              <% end %>
+            </td>
             <td class="text-end">
               <% if row[:earnings_cents] %>
                 $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
@@ -202,7 +280,7 @@
             <td class="text-center"><%= row[:user].double_downs_remaining %></td>
             <td class="text-center">
               <% if no_cut_alive_ids.include?(row[:user].id) %>
-                <span class="text-success fw-semibold">Still Alive</span>
+                <span class="text-success fw-semibold">Still alive</span>
               <% else %>
                 <span style="color: #a0522d;">🍞 Toast</span>
               <% end %>
