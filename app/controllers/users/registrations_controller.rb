@@ -1,4 +1,12 @@
 class Users::RegistrationsController < Devise::RegistrationsController
+  def new
+    redirect_to root_path, alert: "Registration is not open."
+  end
+
+  def create
+    redirect_to root_path, alert: "Registration is not open."
+  end
+
   protected
 
   def after_inactive_sign_up_path_for(resource)

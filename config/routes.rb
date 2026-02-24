@@ -3,7 +3,7 @@ Rails.application.routes.draw do
     registrations: "users/registrations"
   }
 
-  root "picks#index"
+  root "standings#index"
 
   resources :picks, only: %i[index create destroy]
   resources :standings, only: [:index]

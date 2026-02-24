@@ -1,4 +1,6 @@
 class StandingsController < ApplicationController
+  skip_before_action :authenticate_user!
+
   def index
     @tab  = params[:tab] || "overall"
     @sort = params[:sort].presence
