@@ -65,7 +65,7 @@ class StandingsController < ApplicationController
 
     # --- Compute earnings-based display rank, independent of current sort ---
     cut_val = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
-    by_earnings = picks.sort_by { |p| [cut_val.call(p), -(p.earnings_cents || 0), p.user.name] }
+    by_earnings = picks.sort_by { |p| [cut_val.call(p), -(p.earnings_cents || 0), p.current_position || 9999, p.golfer.name, p.user.name] }
 
     rank_by_id = {}
     rank = 1
@@ -91,9 +91,9 @@ class StandingsController < ApplicationController
       when "earnings"
         base = p.earnings_cents || 0
         earnings_val = dir == "desc" ? -base : base
-        [cut, earnings_val, p.user.name]
+        [cut, earnings_val, p.current_position || 9999, p.golfer.name, p.user.name]
       else # score
-        [cut, p.current_position || 9999, p.golfer_id, p.user.name]
+        [cut, p.current_position || 9999, p.golfer.name, p.user.name]
       end
     end
 
