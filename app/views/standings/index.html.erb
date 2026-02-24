@@ -61,7 +61,7 @@
               <th><%= sort_header("Pos",      "pos",      live_base, cur_sort, cur_dir) %></th>
               <th><%= sort_header("Score",    "score",    live_base, cur_sort, cur_dir) %></th>
               <th><%= sort_header("Thru",     "thru",     live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
-              <th><%= sort_header("Proj. Earnings", "earnings", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+              <th class="text-end"><%= sort_header("Proj. Earnings", "earnings", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
             </tr>
           </thead>
           <tbody>
@@ -81,7 +81,7 @@
                 <td><%= row[:position_display].presence || "—" %></td>
                 <td><%= format_score(row[:score_to_par]) %></td>
                 <td><%= row[:thru].presence || "—" %></td>
-                <td>
+                <td class="text-end">
                   <% if row[:current_earnings_cents]&.positive? %>
                     $<%= number_with_delimiter((row[:current_earnings_cents] / 100.0).to_i) %>
                   <% else %>
@@ -145,7 +145,7 @@
           <th><%= sort_header("Golfer",   "golfer",   t_base, cur_sort, cur_dir) %></th>
           <th><%= sort_header("Pos",      "pos",      t_base, cur_sort, cur_dir) %></th>
           <th><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
-          <th><%= sort_header("Earnings", "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+          <th class="text-end"><%= sort_header("Earnings", "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         </tr>
       </thead>
       <tbody>
@@ -164,7 +164,7 @@
             </td>
             <td><%= row[:position_display].presence || "—" %></td>
             <td><%= format_score(row[:score_to_par]) %></td>
-            <td>
+            <td class="text-end">
               <% if row[:earnings_cents] %>
                 $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
               <% else %>
@@ -182,7 +182,7 @@
         <tr>
           <th>Rank</th>
           <th>Player</th>
-          <th>Earnings</th>
+          <th class="text-end">Earnings</th>
           <th>2x Left</th>
           <th>No-Cut Challenge</th>
         </tr>
@@ -192,7 +192,7 @@
           <tr class="<%= 'highlight' if row[:user] == current_user %>">
             <td><span class="standings-rank"><%= row[:rank] %></span></td>
             <td><%= row[:user].name %></td>
-            <td>
+            <td class="text-end">
               <% if row[:earnings_cents] %>
                 $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
               <% else %>
