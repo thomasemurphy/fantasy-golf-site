@@ -91,14 +91,15 @@ class StandingsController < ApplicationController
       when "earnings"
         base = p.earnings_cents || 0
         base = p.is_double_down? ? base / 2 : base
-        [cut, -base, p.user.name]
+        earnings_val = dir == "desc" ? -base : base
+        [cut, earnings_val, p.user.name]
       else # score
         [cut, p.current_position || 9999, p.golfer_id, p.user.name]
       end
     end
 
     picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
-    if dir == "desc" && %w[score earnings].include?(sort)
+    if dir == "desc" && sort == "score"
       picks.reverse!
       picks.sort_by!.with_index { |p, i| [p.current_position_display == "CUT" ? 1 : 0, i] }
     end
