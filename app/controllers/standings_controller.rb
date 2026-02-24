@@ -41,25 +41,13 @@ class StandingsController < ApplicationController
   def compute_standings(tab)
     users = User.where(approved: true).where.not(name: "Commissioner").includes(:picks)
 
-    ranked = case tab
-    when "majors"
-      users.sort_by { |u| -u.majors_earnings_cents }
-    when "side_events"
-      users.sort_by { |u| -u.side_events_earnings_cents }
-    when "first_half"
-      users.sort_by { |u| -u.first_half_earnings_cents }
-    when "second_half"
-      users.sort_by { |u| -u.second_half_earnings_cents }
-    else
-      users.sort_by { |u| -u.total_earnings_cents }
-    end
+    sorted = users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
 
-    ranked.map.with_index(1) do |user, rank|
-      {
-        rank: rank,
-        user: user,
-        earnings_cents: earnings_for_tab(user, tab)
-      }
+    rank = 1
+    sorted.chunk_while { |a, b| earnings_for_tab(a, tab) == earnings_for_tab(b, tab) }.flat_map do |group|
+      display = group.size > 1 ? "T#{rank}" : rank.to_s
+      rank += group.size
+      group.map { |user| { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab) } }
     end
   end
 
