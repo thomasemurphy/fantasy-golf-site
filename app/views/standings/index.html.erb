@@ -58,8 +58,8 @@
               <th>Rank</th>
               <th><%= sort_header("Player",   "player",   live_base, cur_sort, cur_dir) %></th>
               <th><%= sort_header("Golfer",   "golfer",   live_base, cur_sort, cur_dir) %></th>
-              <th><%= sort_header("Pos",      "pos",      live_base, cur_sort, cur_dir) %></th>
-              <th><%= sort_header("Score",    "score",    live_base, cur_sort, cur_dir) %></th>
+              <th class="text-center"><%= sort_header("Pos",      "pos",      live_base, cur_sort, cur_dir) %></th>
+              <th class="text-center"><%= sort_header("Score",    "score",    live_base, cur_sort, cur_dir) %></th>
               <th><%= sort_header("Thru",     "thru",     live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
               <th class="text-end"><%= sort_header("Proj. Earnings", "earnings", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
             </tr>
@@ -78,8 +78,8 @@
                     <span class="badge bg-secondary ms-1">Auto</span>
                   <% end %>
                 </td>
-                <td><%= row[:position_display].presence || "—" %></td>
-                <td><%= format_score(row[:score_to_par]) %></td>
+                <td class="text-center"><%= row[:position_display].presence || "—" %></td>
+                <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
                 <td><%= row[:thru].presence || "—" %></td>
                 <td class="text-end">
                   <% if row[:current_earnings_cents]&.positive? %>
@@ -114,9 +114,9 @@
             <% @field_standings.each do |row| %>
               <% picked_by_me = row[:picks].any? { |p| p.user == current_user } %>
               <tr class="<%= 'highlight' if picked_by_me %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
-                <td><%= row[:position_display].presence || "—" %></td>
+                <td class="text-center"><%= row[:position_display].presence || "—" %></td>
                 <td><%= row[:golfer].name %></td>
-                <td><%= format_score(row[:score_to_par]) %></td>
+                <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
                 <td><%= row[:thru].presence || "—" %></td>
                 <td class="text-muted" style="font-size:0.875em">
                   <% row[:picks].each_with_index do |pick, i| %>
@@ -143,8 +143,8 @@
           <th>Rank</th>
           <th><%= sort_header("Player",   "player",   t_base, cur_sort, cur_dir) %></th>
           <th><%= sort_header("Golfer",   "golfer",   t_base, cur_sort, cur_dir) %></th>
-          <th><%= sort_header("Pos",      "pos",      t_base, cur_sort, cur_dir) %></th>
-          <th><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
+          <th class="text-center"><%= sort_header("Pos",      "pos",      t_base, cur_sort, cur_dir) %></th>
+          <th class="text-center"><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
           <th class="text-end"><%= sort_header("Earnings", "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         </tr>
       </thead>
@@ -162,8 +162,8 @@
                 <span class="badge bg-secondary ms-1">Auto</span>
               <% end %>
             </td>
-            <td><%= row[:position_display].presence || "—" %></td>
-            <td><%= format_score(row[:score_to_par]) %></td>
+            <td class="text-center"><%= row[:position_display].presence || "—" %></td>
+            <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
             <td class="text-end">
               <% if row[:earnings_cents] %>
                 $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
@@ -183,8 +183,8 @@
           <th>Rank</th>
           <th>Player</th>
           <th class="text-end">Earnings</th>
-          <th>2x Left</th>
-          <th>No-Cut Challenge</th>
+          <th class="text-center">2x Left</th>
+          <th class="text-center">No-Cut</th>
         </tr>
       </thead>
       <tbody>
@@ -199,8 +199,8 @@
                 <span class="text-muted">—</span>
               <% end %>
             </td>
-            <td><%= row[:user].double_downs_remaining %></td>
-            <td>
+            <td class="text-center"><%= row[:user].double_downs_remaining %></td>
+            <td class="text-center">
               <% if no_cut_alive_ids.include?(row[:user].id) %>
                 <span class="text-success fw-semibold">Still Alive</span>
               <% else %>
