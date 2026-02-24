@@ -63,16 +63,16 @@ class StandingsController < ApplicationController
                 .preload(:user, :golfer)
                 .to_a
 
-    # --- Compute position-based display rank, independent of current sort ---
-    by_pos = picks.sort_by do |p|
-      cut = p.current_position_display == "CUT" ? 1 : 0
-      [cut, p.current_position || 9999, p.golfer_id, p.user.name]
-    end
+    # --- Compute earnings-based display rank, independent of current sort ---
+    cut_val = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
+    by_earnings = picks.sort_by { |p| [cut_val.call(p), -(p.earnings_cents || 0), p.user.name] }
 
     rank_by_id = {}
     rank = 1
-    by_pos.chunk_while { |a, b| a.current_position == b.current_position && !a.current_position.nil? }.each do |group|
-      if group.first.current_position.nil?
+    by_earnings.chunk_while { |a, b|
+      cut_val.call(a) == cut_val.call(b) && (a.earnings_cents || 0) == (b.earnings_cents || 0)
+    }.each do |group|
+      if cut_val.call(group.first) == 1
         group.each { |p| rank_by_id[p.id] = "—" }
       else
         display = group.size > 1 ? "T#{rank}" : rank.to_s
