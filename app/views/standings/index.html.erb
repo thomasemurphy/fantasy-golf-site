@@ -183,6 +183,7 @@
           <th>Rank</th>
           <th>Player</th>
           <th>Earnings</th>
+          <th>2x Left</th>
           <th>No-Cut Challenge</th>
         </tr>
       </thead>
@@ -198,6 +199,7 @@
                 <span class="text-muted">—</span>
               <% end %>
             </td>
+            <td><%= row[:user].double_downs_remaining %></td>
             <td>
               <% if no_cut_alive_ids.include?(row[:user].id) %>
                 <span class="text-success fw-semibold">Still Alive</span>
