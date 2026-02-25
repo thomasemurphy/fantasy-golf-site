@@ -157,6 +157,7 @@
                 <% ttl = row[:total_earnings_cents].to_i %>
                 <span data-controller="tooltip"
                       data-tooltip-title-value="<%= row[:user].name %>"
+                      data-tooltip-rank-value="<%= row[:rank] %>"
                       <% if ttl > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl / 100.0).to_i) %>"<% end %>>
                   <span data-tooltip-target="trigger"
                         data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
@@ -235,6 +236,7 @@
                 <% ttl_earnings = row[:total_earnings_cents].to_i %>
                 <span data-controller="tooltip"
                       data-tooltip-title-value="<%= row[:user].name %>"
+                      data-tooltip-rank-value="<%= row[:rank] %>"
                       <% if ttl_earnings > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl_earnings / 100.0).to_i) %>"<% end %>>
                   <span data-tooltip-target="trigger"
                         data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"

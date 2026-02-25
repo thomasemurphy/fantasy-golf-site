@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["trigger", "content"]
-  static values = { title: String, earnings: String }
+  static values = { title: String, earnings: String, rank: String }
 
   connect() {
     this.popup = document.createElement("div")
@@ -12,6 +12,7 @@ export default class extends Controller {
     if (this.titleValue) {
       html += `<div class="pick-tooltip-title">
         <span>${this.titleValue}</span>
+        ${this.rankValue ? `<span class="pick-tooltip-rank">${this.rankValue}</span>` : ""}
         ${this.earningsValue ? `<span class="pick-tooltip-total">${this.earningsValue}</span>` : ""}
       </div>`
     }
@@ -26,8 +27,8 @@ export default class extends Controller {
 
   show() {
     const rect = this.triggerTarget.getBoundingClientRect()
-    this.popup.style.top = (rect.bottom + window.scrollY + 6) + "px"
-    this.popup.style.left = rect.left + window.scrollX + "px"
+    this.popup.style.top = (rect.top + window.scrollY - 12) + "px"
+    this.popup.style.left = (rect.left + window.scrollX - 16) + "px"
     this.popup.style.transitionDelay = "0.3s"
     this.popup.style.opacity = "1"
     this.popup.style.visibility = "visible"

@@ -185,6 +185,13 @@ tr.status-completed   { color: #6c757d; }
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+.pick-tooltip-rank {
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .pick-tooltip-total {
   font-weight: 600;
   color: #198754;
