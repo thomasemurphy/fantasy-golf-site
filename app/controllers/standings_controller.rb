@@ -228,6 +228,18 @@ class StandingsController < ApplicationController
     end
     total_earnings_by_user = history_picks.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
 
+    # Overall rank for tooltip header
+    all_users = User.where(approved: true).where.not(name: "Commissioner").to_a
+    overall_rank_by_user_id = {}
+    overall_rank = 1
+    all_users.sort_by { |u| [-u.total_earnings_cents.to_i, u.name] }
+             .chunk_while { |a, b| a.total_earnings_cents.to_i == b.total_earnings_cents.to_i }
+             .each do |group|
+               display = group.size > 1 ? "T#{overall_rank}" : overall_rank.to_s
+               group.each { |u| overall_rank_by_user_id[u.id] = display }
+               overall_rank += group.size
+             end
+
     cut_val = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
 
     picks.sort_by! do |p|
@@ -271,7 +283,8 @@ class StandingsController < ApplicationController
         thru:                   pick.current_thru,
         current_earnings_cents: pick.current_earnings_cents,
         completed_picks:        history_by_user[pick.user_id] || [],
-        total_earnings_cents:   total_earnings_by_user[pick.user_id] || 0
+        total_earnings_cents:   total_earnings_by_user[pick.user_id] || 0,
+        overall_rank:           overall_rank_by_user_id[pick.user_id] || "—"
       }
     end
   end
