@@ -202,32 +202,63 @@ class StandingsController < ApplicationController
                 .preload(:user, :golfer)
                 .to_a
 
+    # Preload completed pick history for tooltips
+    user_ids = picks.map(&:user_id).uniq
+    completed_tid = Tournament.where(status: "completed").pluck(:id)
+    results_index = TournamentResult.where(tournament_id: completed_tid)
+                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
+    history_picks = Pick.where(user_id: user_ids, tournament_id: completed_tid)
+                        .includes(:golfer, :tournament).to_a.group_by(&:user_id)
+    history_by_user = history_picks.transform_values do |ups|
+      ups.sort_by { |p| p.tournament.week_number }
+         .map { |p| { pick: p, position: results_index[[p.tournament_id, p.golfer_id]]&.current_position_display } }
+    end
+    total_earnings_by_user = history_picks.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
+
+    cut_val = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
+
     picks.sort_by! do |p|
-      cut = p.current_position_display == "CUT" ? 1 : 0
+      cut = cut_val.call(p)
       case sort
       when "player"   then [cut, p.user.name]
-      when "golfer"   then [cut, p.golfer.name]
-      when "pos"      then [cut, p.current_position || 9999, p.user.name]
-      when "thru"     then [cut, thru_sort_val(p.current_thru), p.user.name]
-      when "earnings" then [cut, p.current_earnings_cents || 0, p.user.name]
+      when "golfer"   then [cut, p.golfer.name, p.user.name]
+      when "pos"      then [cut, p.current_position || 9999, p.golfer.name, p.user.name]
+      when "thru"     then [cut, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
+      when "earnings" then [cut, -(p.current_earnings_cents || 0), p.golfer.name, p.user.name]
       else # "score" (default)
-        [cut, p.current_score_to_par || 999, p.user.name]
+        [cut, p.current_score_to_par || 999, p.golfer.name, p.user.name]
       end
     end
-    picks.reverse! if dir == "desc"
-    # After reversing, CUT players would move to the top — put them back at the bottom
-    picks.sort_by!.with_index { |p, i| [p.current_position_display == "CUT" ? 1 : 0, i] } if dir == "desc"
+    picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
 
-    picks.map.with_index(1) do |pick, rank|
+    # Tie-aware rank based on default sort key (score)
+    by_score = picks.sort_by { |p| [cut_val.call(p), p.current_score_to_par || 999, p.golfer.name, p.user.name] }
+    rank_by_id = {}
+    rank = 1
+    by_score.chunk_while { |a, b|
+      cut_val.call(a) == cut_val.call(b) && (a.current_score_to_par || 999) == (b.current_score_to_par || 999)
+    }.each do |group|
+      if cut_val.call(group.first) == 1
+        group.each { |p| rank_by_id[p.id] = "—" }
+      else
+        display = group.size > 1 ? "T#{rank}" : rank.to_s
+        group.each { |p| rank_by_id[p.id] = display }
+        rank += group.size
+      end
+    end
+
+    picks.map do |pick|
       {
-        rank:                    rank,
-        user:                    pick.user,
-        golfer:                  pick.golfer,
-        pick:                    pick,
-        position_display:        pick.current_position_display,
-        score_to_par:            pick.current_score_to_par,
-        thru:                    pick.current_thru,
-        current_earnings_cents:  pick.current_earnings_cents
+        rank:                   rank_by_id[pick.id] || "—",
+        user:                   pick.user,
+        golfer:                 pick.golfer,
+        pick:                   pick,
+        position_display:       pick.current_position_display,
+        score_to_par:           pick.current_score_to_par,
+        thru:                   pick.current_thru,
+        current_earnings_cents: pick.current_earnings_cents,
+        completed_picks:        history_by_user[pick.user_id] || [],
+        total_earnings_cents:   total_earnings_by_user[pick.user_id] || 0
       }
     end
   end
