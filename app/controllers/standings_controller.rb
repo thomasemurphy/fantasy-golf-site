@@ -1,12 +1,32 @@
 class StandingsController < ApplicationController
   skip_before_action :authenticate_user!
 
+  REFRESH_COOLDOWN = 60 # seconds
+
+  def refresh
+    tournament = Tournament.find_by(status: "in_progress")
+    unless tournament
+      redirect_to standings_path and return
+    end
+
+    last = Rails.cache.read("standings_last_refreshed")
+    if last && Time.current - last < REFRESH_COOLDOWN
+      remaining = (REFRESH_COOLDOWN - (Time.current - last)).ceil
+      redirect_to standings_path(tab: "live"), flash: { notice: "Leaderboard was just updated. Try again in #{remaining}s." } and return
+    end
+
+    SyncTournamentResultsJob.perform_now(tournament.id)
+    Rails.cache.write("standings_last_refreshed", Time.current, expires_in: 10.minutes)
+    redirect_to standings_path(tab: "live"), flash: { notice: "Leaderboard updated." }
+  end
+
   def index
-    @tab  = params[:tab] || "overall"
+    @live_tournament = Tournament.find_by(status: "in_progress")
+    default_tab = (@live_tournament && params[:tournament_id].blank?) ? "live" : "overall"
+    @tab  = params[:tab] || default_tab
     @sort = params[:sort].presence
     @dir  = %w[asc desc].include?(params[:dir]) ? params[:dir] : nil
 
-    @live_tournament = Tournament.find_by(status: "in_progress")
     @tab = "overall" if @tab == "live" && @live_tournament.nil?
 
     @completed_tournaments = Tournament.joins(:picks).distinct.order(:week_number)
@@ -26,7 +46,14 @@ class StandingsController < ApplicationController
       if @tournament.status == "in_progress"
         redirect_to standings_path(tab: "live") and return
       end
-      @standings = tournament_standings(@tournament)
+      @t_view = params[:view] == "field" ? "field" : "pool"
+      if @t_view == "field"
+        @standings = []
+        @field_standings = field_standings(@tournament)
+      else
+        @standings = tournament_standings(@tournament)
+        @field_standings = []
+      end
       @live_standings = []
     else
       @standings = compute_standings(@tab)
@@ -34,6 +61,7 @@ class StandingsController < ApplicationController
     end
 
     @no_cut_users = no_cut_survivors
+    @last_refreshed = Rails.cache.read("standings_last_refreshed")
   end
 
   private
@@ -223,7 +251,8 @@ class StandingsController < ApplicationController
         score_to_par:     result.current_score_to_par,
         thru:             result.current_thru,
         current_position: result.current_position,
-        picks:            picks_by_golfer[result.golfer_id] || []
+        picks:            picks_by_golfer[result.golfer_id] || [],
+        earnings_cents:   result.earnings_cents
       }
     end
 

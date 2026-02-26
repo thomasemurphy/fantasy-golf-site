@@ -4,6 +4,13 @@
 
 .deadline-note { font-size: 0.9rem; color: #6c757d; }
 
+/* Outer wrapper for live standings — sizes to table width so header aligns */
+.live-standings-outer {
+  display: inline-block;
+  min-width: 60%;
+  width: 100%;
+}
+
 /* Standings table wrapper — taargus-inspired */
 .standings-table-wrapper {
   overflow-x: auto;
@@ -107,6 +114,15 @@
 
 [data-bs-theme="dark"] .standings-table tbody tr.cut-row td {
   color: #f87171;
+}
+
+/* Auto-pick row styling (forgot to submit) */
+.standings-table tbody tr.auto-pick-row td {
+  color: #e07b00;
+}
+
+[data-bs-theme="dark"] .standings-table tbody tr.auto-pick-row td {
+  color: #f5a442;
 }
 
 /* Sortable column header links */
