@@ -80,8 +80,35 @@ class SyncTournamentResultsJob < ApplicationJob
     normalized = espn_name.gsub(".", "").squeeze(" ").strip
     return Golfer.find_by(name: normalized) if Golfer.exists?(name: normalized)
 
+    # Try accent-stripped comparison (e.g. "Højgaard" → "Hojgaard")
+    stripped = strip_accents(espn_name)
+    Golfer.all.each do |g|
+      return g if strip_accents(g.name) == stripped
+    end
+
     last_name = espn_name.split.last
     matches   = Golfer.where("name ILIKE ?", "%#{last_name}")
     matches.first if matches.one?
+  end
+
+  ACCENT_MAP = {
+    "À" => "A", "Á" => "A", "Â" => "A", "Ã" => "A", "Ä" => "A", "Å" => "A",
+    "à" => "a", "á" => "a", "â" => "a", "ã" => "a", "ä" => "a", "å" => "a",
+    "È" => "E", "É" => "E", "Ê" => "E", "Ë" => "E",
+    "è" => "e", "é" => "e", "ê" => "e", "ë" => "e",
+    "Ì" => "I", "Í" => "I", "Î" => "I", "Ï" => "I",
+    "ì" => "i", "í" => "i", "î" => "i", "ï" => "i",
+    "Ò" => "O", "Ó" => "O", "Ô" => "O", "Õ" => "O", "Ö" => "O", "Ø" => "O",
+    "ò" => "o", "ó" => "o", "ô" => "o", "õ" => "o", "ö" => "o", "ø" => "o",
+    "Ù" => "U", "Ú" => "U", "Û" => "U", "Ü" => "U",
+    "ù" => "u", "ú" => "u", "û" => "u", "ü" => "u",
+    "Ý" => "Y", "ý" => "y", "ÿ" => "y",
+    "Ñ" => "N", "ñ" => "n",
+    "Ç" => "C", "ç" => "c",
+    "ß" => "ss"
+  }.freeze
+
+  def strip_accents(str)
+    str.chars.map { |c| ACCENT_MAP[c] || c }.join
   end
 end
