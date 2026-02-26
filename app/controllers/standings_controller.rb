@@ -251,7 +251,7 @@ class StandingsController < ApplicationController
       when "thru"     then [cut, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       when "earnings" then [cut, -(p.current_earnings_cents || 0), p.golfer.name, p.user.name]
       else # "score" (default)
-        [cut, p.current_score_to_par || 999, p.golfer.name, p.user.name]
+        [cut, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       end
     end
     picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
@@ -329,8 +329,8 @@ class StandingsController < ApplicationController
   end
 
   def thru_sort_val(thru)
-    return -1 if thru.nil?
-    thru == "F" ? 18 : thru.to_i
+    return 0 if thru.nil?
+    thru == "F" ? 19 : thru.to_i
   end
 
   def no_cut_survivors
