@@ -43,11 +43,11 @@ class User < ApplicationRecord
   def no_cut_streak_alive?
     completed_picks = picks.joins(:tournament)
                            .where(tournaments: { status: "completed" })
-                           .where.not(made_cut: nil)
-                           .where(auto_assigned: false)
     return true if completed_picks.none?
 
-    completed_picks.all?(&:made_cut?)
+    return false if completed_picks.any?(&:auto_assigned?)
+
+    completed_picks.where.not(made_cut: nil).all?(&:made_cut?)
   end
 
   def used_golfer_ids
