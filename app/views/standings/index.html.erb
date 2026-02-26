@@ -42,7 +42,7 @@
         </div>
         <div class="d-flex align-items-center gap-3 ms-auto flex-wrap">
           <% if @last_refreshed %>
-            <span class="text-muted" style="font-size:12px">Updated <%= time_ago_in_words(@last_refreshed) %> ago</span>
+            <span class="text-muted refreshed-label" style="font-size:12px" data-refreshed-at="<%= @last_refreshed.to_i %>"></span>
           <% end %>
           <% on_cooldown = @last_refreshed && Time.current - @last_refreshed < StandingsController::REFRESH_COOLDOWN %>
           <%= button_to refresh_standings_path, method: :post,
@@ -160,7 +160,7 @@
         </div>
         <div class="d-flex align-items-center gap-3 ms-auto flex-wrap">
           <% if @last_refreshed %>
-            <span class="text-muted" style="font-size:12px">Updated <%= time_ago_in_words(@last_refreshed) %> ago</span>
+            <span class="text-muted refreshed-label" style="font-size:12px" data-refreshed-at="<%= @last_refreshed.to_i %>"></span>
           <% end %>
           <% on_cooldown = @last_refreshed && Time.current - @last_refreshed < StandingsController::REFRESH_COOLDOWN %>
           <%= button_to refresh_standings_path, method: :post,
@@ -427,4 +427,21 @@
   <% end %>
 </div>
 <% if @tournament %></div><% end %><%# live-standings-outer %>
+<% end %>
+
+<% if @last_refreshed %>
+<script>
+  (function() {
+    var refreshedAt = <%= @last_refreshed.to_i %> * 1000;
+    function updateLabels() {
+      var elapsed = (Date.now() - refreshedAt) / 1000;
+      var text = elapsed < 8 ? "Updated just now" : "Updated less than a minute ago";
+      document.querySelectorAll(".refreshed-label").forEach(function(el) {
+        el.textContent = text;
+      });
+    }
+    updateLabels();
+    setInterval(updateLabels, 1000);
+  })();
+</script>
 <% end %>
