@@ -56,7 +56,7 @@ class SyncTournamentResultsJob < ApplicationJob
         pick.update_column(:made_cut, result.made_cut)
       end
 
-      if data[:completed] && tournament.status == "in_progress" && Date.current >= tournament.end_date
+      if data[:completed] && tournament.status == "in_progress" && Time.current >= tournament.end_date.end_of_day
         tournament.update!(status: "completed")
         Rails.logger.info "[SyncTournamentResultsJob] Marked #{tournament.name} as completed"
       end
