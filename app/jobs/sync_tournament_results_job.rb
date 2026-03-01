@@ -48,6 +48,9 @@ class SyncTournamentResultsJob < ApplicationJob
         result.save!
       end
 
+      # Project earnings based on current position and tournament purse.
+      project_earnings(tournament)
+
       # Sync made_cut onto picks so no-cut challenge tracking is accurate.
       # Earnings are entered separately via the admin earnings form.
       tournament.picks.each do |pick|
@@ -89,6 +92,46 @@ class SyncTournamentResultsJob < ApplicationJob
     last_name = espn_name.split.last
     matches   = Golfer.where("name ILIKE ?", "%#{last_name}")
     matches.first if matches.one?
+  end
+
+  # Standard PGA Tour payout percentages by finishing position (sums to 100%).
+  PAYOUT_PERCENTAGES = {
+     1 => 18.000,  2 => 10.900,  3 =>  6.900,  4 =>  4.900,  5 =>  4.100,
+     6 =>  3.625,  7 =>  3.375,  8 =>  3.125,  9 =>  2.925, 10 =>  2.725,
+    11 =>  2.525, 12 =>  2.325, 13 =>  2.125, 14 =>  1.925, 15 =>  1.825,
+    16 =>  1.725, 17 =>  1.625, 18 =>  1.525, 19 =>  1.425, 20 =>  1.325,
+    21 =>  1.225, 22 =>  1.125, 23 =>  1.045, 24 =>  0.965, 25 =>  0.885,
+    26 =>  0.805, 27 =>  0.775, 28 =>  0.745, 29 =>  0.715, 30 =>  0.685,
+    31 =>  0.655, 32 =>  0.625, 33 =>  0.595, 34 =>  0.570, 35 =>  0.545,
+    36 =>  0.520, 37 =>  0.495, 38 =>  0.475, 39 =>  0.455, 40 =>  0.435,
+    41 =>  0.415, 42 =>  0.395, 43 =>  0.375, 44 =>  0.355, 45 =>  0.335,
+    46 =>  0.315, 47 =>  0.295, 48 =>  0.279, 49 =>  0.265, 50 =>  0.257,
+    51 =>  0.251, 52 =>  0.245, 53 =>  0.241, 54 =>  0.237, 55 =>  0.235,
+    56 =>  0.233, 57 =>  0.231, 58 =>  0.229, 59 =>  0.227, 60 =>  0.225,
+    61 =>  0.223, 62 =>  0.221, 63 =>  0.219, 64 =>  0.217, 65 =>  0.215
+  }.freeze
+
+  def project_earnings(tournament)
+    purse = tournament.purse_cents.to_i
+    return if purse.zero?
+
+    results = TournamentResult.where(tournament: tournament).to_a
+
+    # Group made-cut players by numeric position to handle ties correctly.
+    # Tied players split the sum of prize money for the positions they occupy.
+    results.select { |r| r.made_cut? && r.current_position }
+           .group_by(&:current_position)
+           .each do |position, tied_results|
+             size = tied_results.size
+             total_pct = (position...position + size).sum { |p| PAYOUT_PERCENTAGES[p] || 0.0 }
+             earnings = (purse * total_pct / 100.0 / size).round
+             TournamentResult.where(id: tied_results.map(&:id))
+                             .update_all(current_earnings_cents: earnings)
+           end
+
+    # Missed-cut players earn nothing.
+    TournamentResult.where(tournament: tournament, made_cut: false)
+                    .update_all(current_earnings_cents: 0)
   end
 
   ACCENT_MAP = {

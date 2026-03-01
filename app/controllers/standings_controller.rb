@@ -281,6 +281,7 @@ class StandingsController < ApplicationController
         position_display:       pick.current_position_display,
         score_to_par:           pick.current_score_to_par,
         thru:                   pick.current_thru,
+        round:                  pick.current_round,
         current_earnings_cents: pick.current_earnings_cents,
         completed_picks:        history_by_user[pick.user_id] || [],
         total_earnings_cents:   total_earnings_by_user[pick.user_id] || 0,
@@ -330,7 +331,7 @@ class StandingsController < ApplicationController
 
   def thru_sort_val(thru)
     return 0 if thru.nil?
-    thru == "F" ? 19 : thru.to_i
+    thru&.start_with?("F") ? 19 : thru.to_i
   end
 
   def no_cut_survivors

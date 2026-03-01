@@ -132,7 +132,7 @@
                 </td>
                 <td class="text-center"><%= row[:position_display].presence || "—" %></td>
                 <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
-                <td class="text-center"><%= row[:thru].presence || "—" %></td>
+                <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
                 <td class="text-end">
                   <% if row[:current_earnings_cents]&.positive? %>
                     $<%= number_with_delimiter((row[:current_earnings_cents] / 100.0).to_i) %>
@@ -199,7 +199,7 @@
                 <td class="text-center"><%= row[:position_display].presence || "—" %></td>
                 <td><%= row[:golfer].name %></td>
                 <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
-                <td class="text-center"><%= row[:thru].presence || "—" %></td>
+                <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
                 <td class="text-muted" style="font-size:0.875em">
                   <% row[:picks].each_with_index do |pick, i| %>
                     <%= pick.user.name %><% if pick.is_double_down? %>&nbsp;<span class="badge bg-warning text-dark">2x</span><% end %><%= i < row[:picks].size - 1 ? ", " : "" %>
