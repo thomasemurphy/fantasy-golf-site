@@ -45,8 +45,8 @@ class SyncTournamentEarningsJob < ApplicationJob
         matched += 1
       end
 
-      # Re-save all picks to trigger Pick#calculate_earnings and sync made_cut
-      tournament.picks.each(&:save!)
+      # Recalculate earnings on each pick (skip validations — picks are already valid)
+      tournament.picks.each { |pick| pick.save!(validate: false) }
     end
 
     Rails.logger.info "[SyncTournamentEarningsJob] #{tournament.name}: " \
