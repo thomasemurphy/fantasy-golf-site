@@ -33,6 +33,7 @@
               <td class="d-flex gap-1">
                 <%= button_to "Sync Field", sync_field_admin_tournament_path(t), method: :post, class: "btn btn-sm btn-outline-secondary" %>
                 <%= button_to "Sync Results", sync_results_admin_tournament_path(t), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+                <%= button_to "Sync Earnings", sync_earnings_admin_tournament_path(t), method: :post, class: "btn btn-sm btn-outline-secondary" %>
               </td>
             </tr>
           <% end %>
