@@ -21,47 +21,41 @@ class StandingsController < ApplicationController
   end
 
   def index
-    @live_tournament = Tournament.find_by(status: "in_progress")
-    default_tab = (@live_tournament && params[:tournament_id].blank?) ? "live" : "overall"
-    @tab  = params[:tab] || default_tab
+    @live_tournament       = Tournament.find_by(status: "in_progress")
+    @completed_tournaments = Tournament.where(status: %w[completed in_progress])
+                                       .joins(:picks).distinct.order(:week_number)
+    @no_cut_users  = no_cut_survivors
+    @last_refreshed = Rails.cache.read("standings_last_refreshed")
     @sort = params[:sort].presence
     @dir  = %w[asc desc].include?(params[:dir]) ? params[:dir] : nil
 
-    @tab = "overall" if @tab == "live" && @live_tournament.nil?
-
-    @completed_tournaments = Tournament.joins(:picks).distinct.order(:week_number)
-
-    if @tab == "live" && @live_tournament
-      @live_view = params[:view] == "field" ? "field" : "pool"
-      @standings = []
-      if @live_view == "field"
-        @live_standings  = []
-        @field_standings = field_standings(@live_tournament)
-      else
-        @live_standings  = live_standings(@live_tournament)
-        @field_standings = []
-      end
-    elsif params[:tournament_id].present?
-      @tournament = Tournament.find(params[:tournament_id])
-      if @tournament.status == "in_progress"
-        redirect_to standings_path(tab: "live") and return
-      end
-      @t_view = params[:view] == "field" ? "field" : "pool"
-      if @t_view == "field"
-        @standings = []
-        @field_standings = field_standings(@tournament)
-      else
-        @standings = tournament_standings(@tournament)
-        @field_standings = []
-      end
-      @live_standings = []
+    # Determine which tab to open on page load
+    @initial_tab = if params[:tournament_id].present?
+      "t#{params[:tournament_id]}"
+    elsif params[:tab].present?
+      params[:tab]
+    elsif @live_tournament
+      "live"
     else
-      @standings = compute_standings(@tab)
-      @live_standings = []
+      "overall"
+    end
+    @initial_tab = "overall" if @initial_tab == "live" && @live_tournament.nil?
+
+    # Load all standings data at once so tab switching is instant
+    @overall_standings     = compute_standings("overall")
+    @majors_standings      = compute_standings("majors")
+    @side_events_standings = compute_standings("side_events")
+    @first_half_standings  = compute_standings("first_half")
+    @second_half_standings = compute_standings("second_half")
+
+    if @live_tournament
+      @live_pool_standings  = live_standings(@live_tournament)
+      @live_field_standings = field_standings(@live_tournament)
     end
 
-    @no_cut_users = no_cut_survivors
-    @last_refreshed = Rails.cache.read("standings_last_refreshed")
+    @tournament_data = @completed_tournaments
+      .reject { |t| t.status == "in_progress" }
+      .map    { |t| { tournament: t, pool: tournament_standings(t), field: field_standings(t) } }
   end
 
   private

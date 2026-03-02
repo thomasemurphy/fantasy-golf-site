@@ -1,0 +1,141 @@
+<% t      = td[:tournament] %>
+<% tid   = "t#{t.id}" %>
+<% t_base = { tournament_id: t.id } %>
+<% cur_sort = @sort || "earnings"; cur_dir = @dir || "desc" %>
+
+<div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
+  <div class="live-standings-outer">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <h5 class="mb-0"><%= t.name %></h5>
+      <div class="btn-group btn-group-sm ms-auto pool-field-toggle" role="group">
+        <button class="btn btn-outline-secondary active"
+                data-bs-toggle="tab" data-bs-target="#<%= tid %>-pool"
+                type="button">Pool Players</button>
+        <button class="btn btn-outline-secondary"
+                data-bs-toggle="tab" data-bs-target="#<%= tid %>-field"
+                type="button">All Golfers</button>
+      </div>
+    </div>
+
+    <div class="tab-content">
+      <%# Pool view %>
+      <div id="<%= tid %>-pool" class="tab-pane show active">
+        <div class="standings-table-wrapper" style="width:100%">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th><%= sort_header("Player",   "player",   t_base, cur_sort, cur_dir) %></th>
+                <th><%= sort_header("Golfer",   "golfer",   t_base, cur_sort, cur_dir) %></th>
+                <th class="text-center"><%= sort_header("Pos",      "pos",      t_base, cur_sort, cur_dir) %></th>
+                <th class="text-center"><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
+                <th class="text-end"><%= sort_header("Earnings",   "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% td[:pool].each do |row| %>
+                <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %><%= ' auto-pick-row' if row[:pick]&.auto_assigned? %>">
+                  <td><span class="standings-rank"><%= row[:rank] %></span></td>
+                  <td>
+                    <% if row[:completed_picks]&.any? %>
+                      <% ttl = row[:total_earnings_cents].to_i %>
+                      <span data-controller="tooltip"
+                            data-tooltip-title-value="<%= row[:user].name %>"
+                            data-tooltip-rank-value="<%= row[:overall_rank] || row[:rank] %>"
+                            <% if ttl > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl / 100.0).to_i) %>"<% end %>>
+                        <span data-tooltip-target="trigger"
+                              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
+                              class="pick-history-name"><%= row[:user].name %></span>
+                        <span data-tooltip-target="content" style="display:none">
+                          <table style="border-spacing:0;line-height:1.9">
+                            <% row[:completed_picks].each do |cp| %>
+                              <% pick = cp[:pick] %>
+                              <tr>
+                                <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= pick.tournament.week_number %></td>
+                                <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(pick.tournament.name) %></td>
+                                <td style="padding-right:12px;white-space:nowrap">
+                                  <%= pick.golfer.name %>
+                                  <% if pick.is_double_down? %><span style="color:#b8860b;font-size:10px;font-weight:600">2x</span><% end %>
+                                  <% if pick.auto_assigned? %><span style="color:#aaa;font-size:10px">(auto)</span><% end %>
+                                </td>
+                                <td style="padding-right:12px;white-space:nowrap;color:#6c757d"><%= cp[:position] || "—" %></td>
+                                <td style="text-align:right;white-space:nowrap">
+                                  <% if pick.auto_assigned? %>
+                                    <span style="color:#aaa">$0</span>
+                                  <% elsif pick.earnings_cents.to_i > 0 %>
+                                    $<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %>
+                                  <% else %>
+                                    <span style="color:#aaa">$0</span>
+                                  <% end %>
+                                </td>
+                              </tr>
+                            <% end %>
+                          </table>
+                        </span>
+                      </span>
+                    <% else %>
+                      <%= row[:user].name %>
+                    <% end %>
+                  </td>
+                  <td>
+                    <%= row[:golfer].name %>
+                    <% if row[:pick].is_double_down? %><span class="badge bg-warning text-dark ms-1">2x</span><% end %>
+                    <% if row[:pick].auto_assigned? %><span class="badge bg-secondary ms-1">Auto</span><% end %>
+                  </td>
+                  <td class="text-center"><%= row[:position_display].presence || "—" %></td>
+                  <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
+                  <td class="text-end">
+                    <% if row[:earnings_cents] %>
+                      $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
+                    <% else %>
+                      <span class="text-muted">—</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <%# Field view %>
+      <div id="<%= tid %>-field" class="tab-pane">
+        <div class="standings-table-wrapper" style="width:100%">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th class="text-center"><%= sort_header("Pos",      "pos",      t_base, cur_sort, cur_dir) %></th>
+                <th><%= sort_header("Golfer",   "golfer",   t_base, cur_sort, cur_dir) %></th>
+                <th class="text-center"><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
+                <th class="text-end"><%= sort_header("Earnings",   "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                <th>Picked By</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% td[:field].each do |row| %>
+                <% picked_by_me = row[:picks].any? { |p| p.user == current_user } %>
+                <tr class="<%= 'highlight' if picked_by_me %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
+                  <td class="text-center"><%= row[:position_display].presence || "—" %></td>
+                  <td><%= row[:golfer].name %></td>
+                  <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
+                  <td class="text-end">
+                    <% if row[:earnings_cents].to_i > 0 %>
+                      $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
+                    <% else %>
+                      <span class="text-muted">—</span>
+                    <% end %>
+                  </td>
+                  <td class="text-muted" style="font-size:0.875em">
+                    <% row[:picks].each_with_index do |pick, i| %>
+                      <%= pick.user.name %><% if pick.is_double_down? %>&nbsp;<span class="badge bg-warning text-dark">2x</span><% end %><%= i < row[:picks].size - 1 ? ", " : "" %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><%# inner tab-content %>
+  </div><%# live-standings-outer %>
+</div><%# tab-pane %>
