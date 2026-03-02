@@ -4,6 +4,8 @@
 
 .deadline-note { font-size: 0.9rem; color: #6c757d; }
 
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
 /* Outer wrapper for live standings — sizes to table width so header aligns */
 .live-standings-outer {
   display: inline-block;

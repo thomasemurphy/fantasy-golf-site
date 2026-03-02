@@ -405,7 +405,7 @@
                 <%= row[:user].name %>
               <% end %>
             </td>
-            <td class="text-end">
+            <td class="text-end tabular-nums">
               <% if row[:earnings_cents] %>
                 $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
               <% else %>
