@@ -61,7 +61,17 @@ class SyncTournamentResultsJob < ApplicationJob
 
       if data[:completed] && tournament.status == "in_progress" && Time.current >= tournament.end_date.end_of_day
         tournament.update!(status: "completed")
+        just_completed = true
         Rails.logger.info "[SyncTournamentResultsJob] Marked #{tournament.name} as completed"
+      end
+    end
+
+    if just_completed
+      if tournament.pgatour_id.present?
+        SyncTournamentEarningsJob.perform_later(tournament.id)
+        Rails.logger.info "[SyncTournamentResultsJob] Enqueued SyncTournamentEarningsJob for #{tournament.name}"
+      else
+        Rails.logger.warn "[SyncTournamentResultsJob] #{tournament.name} completed but has no pgatour_id — skipping earnings sync"
       end
     end
 
