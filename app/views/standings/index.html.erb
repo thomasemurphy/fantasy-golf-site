@@ -44,7 +44,7 @@
   <%# --- Live tab --- %>
   <% if @live_tournament %>
     <% live_base = { tab: "live" } %>
-    <% cur_sort  = @sort || "score"; cur_dir = @dir || "asc" %>
+    <% cur_sort  = @sort || "earnings"; cur_dir = @dir || "desc" %>
     <% on_cooldown = @last_refreshed && Time.current - @last_refreshed < StandingsController::REFRESH_COOLDOWN %>
 
     <div id="tab-live" class="tab-pane fade <%= 'show active' if @initial_tab == 'live' %>" role="tabpanel">
@@ -94,7 +94,7 @@
                   </thead>
                   <tbody>
                     <% @live_pool_standings.each do |row| %>
-                      <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
+                      <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %><%= ' auto-pick-row' if row[:pick]&.auto_assigned? %>">
                         <td><span class="standings-rank"><%= row[:rank] %></span></td>
                         <td>
                           <% if row[:completed_picks].any? %>
@@ -146,7 +146,9 @@
                         <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
                         <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
                         <td class="text-end">
-                          <% if row[:current_earnings_cents]&.positive? %>
+                          <% if row[:pick].auto_assigned? %>
+                            <span class="text-muted">$0</span>
+                          <% elsif row[:current_earnings_cents]&.positive? %>
                             $<%= number_with_delimiter((row[:current_earnings_cents] / 100.0).to_i) %>
                           <% else %>
                             <span class="text-muted">—</span>

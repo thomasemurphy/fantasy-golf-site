@@ -31,6 +31,7 @@ class SyncTournamentResultsJob < ApplicationJob
 
     players = data[:players]
 
+    just_completed = false
     ApplicationRecord.transaction do
       players.each do |p|
         golfer = find_or_create_golfer(p[:name])

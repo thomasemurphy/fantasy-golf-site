@@ -197,8 +197,8 @@ class StandingsController < ApplicationController
   end
 
   def live_standings(tournament)
-    sort = @sort || "score"
-    dir  = @dir  || "asc"
+    sort = @sort || "earnings"
+    dir  = @dir  || "desc"
 
     picks = Pick.where(tournament: tournament)
                 .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id AND tournament_results.golfer_id = picks.golfer_id")
@@ -234,7 +234,8 @@ class StandingsController < ApplicationController
                overall_rank += group.size
              end
 
-    cut_val = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
+    cut_val      = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
+    effective_proj = ->(p) { p.auto_assigned? ? 0 : (p.is_double_down? ? p.current_earnings_cents.to_i * 2 : p.current_earnings_cents.to_i) }
 
     picks.sort_by! do |p|
       cut = cut_val.call(p)
@@ -243,8 +244,8 @@ class StandingsController < ApplicationController
       when "golfer"   then [cut, p.golfer.name, p.user.name]
       when "pos"      then [cut, p.current_position || 9999, p.golfer.name, p.user.name]
       when "thru"     then [cut, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
-      when "earnings" then [cut, -(p.current_earnings_cents || 0), p.golfer.name, p.user.name]
-      else # "score" (default)
+      when "earnings" then [cut, -effective_proj.call(p), p.golfer.name, p.user.name]
+      else # "score"
         [cut, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       end
     end
@@ -276,7 +277,7 @@ class StandingsController < ApplicationController
         score_to_par:           pick.current_score_to_par,
         thru:                   pick.current_thru,
         round:                  pick.current_round,
-        current_earnings_cents: pick.current_earnings_cents,
+        current_earnings_cents: pick.auto_assigned? ? 0 : (pick.is_double_down? ? pick.current_earnings_cents.to_i * 2 : pick.current_earnings_cents),
         completed_picks:        history_by_user[pick.user_id] || [],
         total_earnings_cents:   total_earnings_by_user[pick.user_id] || 0,
         overall_rank:           overall_rank_by_user_id[pick.user_id] || "—"
