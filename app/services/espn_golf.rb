@@ -66,9 +66,12 @@ class EspnGolf
     rounds        = c["linescores"] || []
     rounds_played = rounds.length
 
-    missed_cut = period > 2 && rounds_played < 3
+    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" }
+    missed_cut = !withdrawn && period > 2 && rounds_played < 3
 
-    rank, position_display = if missed_cut
+    rank, position_display = if withdrawn
+      [ nil, "WD" ]
+    elsif missed_cut
       [ nil, "CUT" ]
     else
       meta = score_meta[score_to_par] || { pos: 999, tied: false }
@@ -82,9 +85,9 @@ class EspnGolf
       rank:             rank,
       position_display: position_display,
       score_to_par:     score_to_par,
-      thru:             compute_thru(rounds, period, completed, missed_cut),
+      thru:             compute_thru(rounds, period, completed, missed_cut || withdrawn),
       current_round:    period,
-      made_cut:         !missed_cut
+      made_cut:         !missed_cut && !withdrawn
     }
   end
 

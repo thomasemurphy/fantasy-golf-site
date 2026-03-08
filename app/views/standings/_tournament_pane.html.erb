@@ -34,7 +34,7 @@
             </thead>
             <tbody>
               <% td[:pool].each do |row| %>
-                <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %><%= ' auto-pick-row' if row[:pick]&.auto_assigned? %>">
+                <tr class="<%= 'highlight' if row[:user] == current_user %><%= ' cut-row' if row[:position_display] == 'CUT' %><%= ' wd-row' if row[:position_display] == 'WD' %><%= ' auto-pick-row' if row[:pick]&.auto_assigned? %>">
                   <td><span class="standings-rank"><%= row[:rank] %></span></td>
                   <td>
                     <% if row[:completed_picks]&.any? %>

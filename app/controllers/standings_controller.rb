@@ -131,15 +131,22 @@ class StandingsController < ApplicationController
              end
 
     # --- Compute earnings-based display rank, independent of current sort ---
-    cut_val = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
-    by_earnings = picks.sort_by { |p| [cut_val.call(p), -(p.earnings_cents || 0), p.current_position || 9999, p.golfer.name, p.user.name] }
+    # bottom_val: 0=active, 1=CUT, 2=WD — rank is "—" for anything > 0
+    bottom_val = ->(p) {
+      case p.current_position_display
+      when "WD"  then 2
+      when "CUT" then 1
+      else 0
+      end
+    }
+    by_earnings = picks.sort_by { |p| [bottom_val.call(p), -(p.earnings_cents || 0), p.current_position || 9999, p.golfer.name, p.user.name] }
 
     rank_by_id = {}
     rank = 1
     by_earnings.chunk_while { |a, b|
-      cut_val.call(a) == cut_val.call(b) && (a.earnings_cents || 0) == (b.earnings_cents || 0)
+      bottom_val.call(a) == 0 && bottom_val.call(b) == 0 && (a.earnings_cents || 0) == (b.earnings_cents || 0)
     }.each do |group|
-      if cut_val.call(group.first) == 1
+      if bottom_val.call(group.first) > 0
         group.each { |p| rank_by_id[p.id] = "—" }
       else
         display = group.size > 1 ? "T#{rank}" : rank.to_s
@@ -149,25 +156,34 @@ class StandingsController < ApplicationController
     end
 
     # --- Sort rows by user-selected column ---
+    # dd_val: 0=double-down, 1=regular — clusters doubles ahead of non-doubles for earnings sort
+    dd_val = ->(p) { p.is_double_down? ? 0 : 1 }
+
     picks.sort_by! do |p|
-      cut = p.current_position_display == "CUT" ? 1 : 0
+      bot = bottom_val.call(p)
       case sort
       when "player"   then [p.user.name]
       when "golfer"   then [p.golfer.name]
-      when "pos"      then [cut, p.current_position || 9999, p.golfer_id, p.user.name]
+      when "pos"      then [bot, p.current_position || 9999, p.golfer_id, p.user.name]
       when "earnings"
         base = p.earnings_cents || 0
         earnings_val = dir == "desc" ? -base : base
-        [cut, earnings_val, p.current_position || 9999, p.golfer.name, p.user.name]
+        if bot == 0
+          [0, earnings_val, p.current_position || 9999, p.golfer.name, p.user.name]
+        elsif bot == 1
+          [1, p.current_score_to_par || 999, p.golfer.name, p.user.name]
+        else
+          [2, dd_val.call(p), p.golfer.name, p.user.name]
+        end
       else # score
-        [cut, p.current_position || 9999, p.golfer.name, p.user.name]
+        [bot, p.current_position || 9999, p.golfer.name, p.user.name]
       end
     end
 
     picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
     if dir == "desc" && sort == "score"
       picks.reverse!
-      picks.sort_by!.with_index { |p, i| [p.current_position_display == "CUT" ? 1 : 0, i] }
+      picks.sort_by!.with_index { |p, i| [bottom_val.call(p), i] }
     end
 
     picks.map do |pick|
@@ -234,31 +250,40 @@ class StandingsController < ApplicationController
                overall_rank += group.size
              end
 
-    cut_val      = ->(p) { p.current_position_display == "CUT" ? 1 : 0 }
+    # 0=active, 1=CUT, 2=WD
+    bottom_val   = ->(p) { case p.current_position_display when "WD" then 2 when "CUT" then 1 else 0 end }
     effective_proj = ->(p) { p.auto_assigned? ? 0 : (p.is_double_down? ? p.current_earnings_cents.to_i * 2 : p.current_earnings_cents.to_i) }
+    dd_val       = ->(p) { p.is_double_down? ? 0 : 1 }
 
     picks.sort_by! do |p|
-      cut = cut_val.call(p)
+      bot = bottom_val.call(p)
       case sort
-      when "player"   then [cut, p.user.name]
-      when "golfer"   then [cut, p.golfer.name, p.user.name]
-      when "pos"      then [cut, p.current_position || 9999, p.golfer.name, p.user.name]
-      when "thru"     then [cut, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
-      when "earnings" then [cut, -effective_proj.call(p), p.golfer.name, p.user.name]
+      when "player"   then [bot, p.user.name]
+      when "golfer"   then [bot, p.golfer.name, p.user.name]
+      when "pos"      then [bot, p.current_position || 9999, p.golfer.name, p.user.name]
+      when "thru"     then [bot, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
+      when "earnings"
+        if bot == 0
+          [0, -effective_proj.call(p), p.golfer.name, p.user.name]
+        elsif bot == 2
+          [2, dd_val.call(p), p.golfer.name, p.user.name]
+        else
+          [bot, 0, p.golfer.name, p.user.name]
+        end
       else # "score"
-        [cut, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
+        [bot, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       end
     end
     picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
 
-    # Tie-aware rank based on default sort key (score)
-    by_score = picks.sort_by { |p| [cut_val.call(p), p.current_score_to_par || 999, p.golfer.name, p.user.name] }
+    # Tie-aware rank based on effective projected earnings (CUT/WD ranked "—")
+    by_earnings = picks.sort_by { |p| [bottom_val.call(p), -effective_proj.call(p), p.golfer.name, p.user.name] }
     rank_by_id = {}
     rank = 1
-    by_score.chunk_while { |a, b|
-      cut_val.call(a) == cut_val.call(b) && (a.current_score_to_par || 999) == (b.current_score_to_par || 999)
+    by_earnings.chunk_while { |a, b|
+      bottom_val.call(a) == 0 && bottom_val.call(b) == 0 && effective_proj.call(a) == effective_proj.call(b)
     }.each do |group|
-      if cut_val.call(group.first) == 1
+      if bottom_val.call(group.first) > 0
         group.each { |p| rank_by_id[p.id] = "—" }
       else
         display = group.size > 1 ? "T#{rank}" : rank.to_s

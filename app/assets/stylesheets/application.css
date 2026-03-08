@@ -118,6 +118,15 @@
   color: #f87171;
 }
 
+/* WD row styling */
+.standings-table tbody tr.wd-row td {
+  color: #7c6f8e;
+}
+
+[data-bs-theme="dark"] .standings-table tbody tr.wd-row td {
+  color: #a99dbc;
+}
+
 /* Auto-pick row styling (forgot to submit) */
 .standings-table tbody tr.auto-pick-row td {
   color: #e07b00;
