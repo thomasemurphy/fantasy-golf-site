@@ -41,6 +41,27 @@ class StandingsController < ApplicationController
     end
     @initial_tab = "overall" if @initial_tab == "live" && @live_tournament.nil?
 
+    # All-golfers season leaderboard for the overall tab
+    completed_tids = Tournament.where(status: "completed").pluck(:id)
+    completed_tournaments_ordered = Tournament.where(id: completed_tids).order(:week_number).to_a
+    golfer_results = TournamentResult.where(tournament_id: completed_tids).includes(:golfer).to_a
+    results_by_gt = golfer_results.index_by { |r| [r.golfer_id, r.tournament_id] }
+    sorted = golfer_results
+      .group_by(&:golfer_id)
+      .map do |gid, rs|
+        history = completed_tournaments_ordered.map do |t|
+          { tournament: t, result: results_by_gt[[gid, t.id]] }
+        end
+        { golfer: rs.first.golfer, earnings_cents: rs.sum { |r| r.earnings_cents.to_i }, history: history }
+      end
+      .sort_by { |g| [-g[:earnings_cents], g[:golfer].name] }
+    rank = 1
+    @all_season_golfers = sorted.chunk_while { |a, b| a[:earnings_cents] == b[:earnings_cents] }.flat_map do |group|
+      display = group.size > 1 ? "T#{rank}" : rank.to_s
+      rank += group.size
+      group.map { |g| g.merge(rank: display) }
+    end
+
     # Load all standings data at once so tab switching is instant
     @overall_standings     = compute_standings("overall")
     @majors_standings      = compute_standings("majors")
@@ -120,6 +141,7 @@ class StandingsController < ApplicationController
     # Preload pick history for tooltip
     user_ids = picks.map { |p| p.user_id }.uniq
     completed_tid = Tournament.where(status: "completed").pluck(:id)
+    completed_tournaments_ordered = Tournament.where(id: completed_tid).order(:week_number).to_a
     results_index = TournamentResult.where(tournament_id: completed_tid)
                                     .index_by { |r| [r.tournament_id, r.golfer_id] }
     history_picks = Pick.where(user_id: user_ids, tournament_id: completed_tid)
@@ -134,6 +156,14 @@ class StandingsController < ApplicationController
                 }
     end
     total_earnings_by_user = history_picks.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
+
+    # Preload golfer history for golfer tooltip
+    golfer_ids = picks.map(&:golfer_id).uniq
+    golfer_history = golfer_ids.index_with do |gid|
+      completed_tournaments_ordered.map do |t|
+        { tournament: t, result: results_index[[t.id, gid]] }
+      end
+    end
 
     # --- Compute overall rank for tooltip header ---
     all_users = User.where(approved: true).where.not(name: "Commissioner").to_a
@@ -214,7 +244,8 @@ class StandingsController < ApplicationController
         score_to_par:          pick.current_score_to_par,
         earnings_cents:        pick.earnings_cents,
         completed_picks:       history_by_user[pick.user_id] || [],
-        total_earnings_cents:  total_earnings_by_user[pick.user_id] || 0
+        total_earnings_cents:  total_earnings_by_user[pick.user_id] || 0,
+        golfer_history:        golfer_history[pick.golfer_id] || []
       }
     end
   end

@@ -1,9 +1,13 @@
 <% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
 <% dd_min = standings.map { |r| r[:user].double_downs_remaining }.min %>
+<% max_earnings = standings.map { |r| r[:earnings_cents].to_i }.max.then { |m| m > 0 ? m : 1 } %>
 <% scoped = @initial_tab == tab_id %>
 <% cur_sort = (scoped ? @sort : nil) || "earnings"; cur_dir = (scoped ? @dir : nil) || "desc" %>
 <% s_base = { tab: tab_id } %>
-<div class="standings-table-wrapper">
+<% skip_wrapper = local_assigns.fetch(:skip_wrapper, false) %>
+<% tag_open  = skip_wrapper ? "".html_safe : "<div class=\"standings-table-wrapper\">".html_safe %>
+<% tag_close = skip_wrapper ? "".html_safe : "</div>".html_safe %>
+<%= tag_open %>
   <table class="standings-table">
     <thead>
       <tr>
@@ -62,6 +66,10 @@
           <td class="text-end tabular-nums">
             <% if row[:earnings_cents] %>
               $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
+              <% pct = (row[:earnings_cents].to_i * 100.0 / max_earnings).round(1) %>
+              <div style="height:4px;border-radius:2px;background:#e9ecef;margin-top:3px">
+                <div style="height:100%;width:<%= pct %>%;border-radius:2px;background:#198754"></div>
+              </div>
             <% else %>
               <span class="text-muted">—</span>
             <% end %>
@@ -80,4 +88,4 @@
       <% end %>
     </tbody>
   </table>
-</div>
+<%= tag_close %>
