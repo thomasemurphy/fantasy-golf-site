@@ -61,6 +61,9 @@ class StandingsController < ApplicationController
   private
 
   def compute_standings(tab)
+    sort = (@initial_tab == tab ? @sort : nil) || "earnings"
+    dir  = (@initial_tab == tab ? @dir  : nil) || "desc"
+
     users = User.where(approved: true).where.not(name: "Commissioner")
                 .includes(picks: [:golfer, :tournament])
 
@@ -68,10 +71,10 @@ class StandingsController < ApplicationController
     results_index = TournamentResult.where(tournament_id: completed_tid)
                                     .index_by { |r| [r.tournament_id, r.golfer_id] }
 
-    sorted = users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
-
+    # Rank is always earnings-based, independent of display sort
+    by_earnings = users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
     rank = 1
-    sorted.chunk_while { |a, b| earnings_for_tab(a, tab) == earnings_for_tab(b, tab) }.flat_map do |group|
+    rows = by_earnings.chunk_while { |a, b| earnings_for_tab(a, tab) == earnings_for_tab(b, tab) }.flat_map do |group|
       display = group.size > 1 ? "T#{rank}" : rank.to_s
       rank += group.size
       group.map do |user|
@@ -86,11 +89,25 @@ class StandingsController < ApplicationController
         { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings }
       end
     end
+
+    # Apply display sort
+    rows.sort_by! do |row|
+      u = row[:user]
+      case sort
+      when "player"   then u.name
+      when "dd"       then u.double_downs_remaining
+      when "nocut"    then u.no_cut_streak_alive? ? 0 : 1
+      else                 [-row[:earnings_cents].to_i, u.name]
+      end
+    end
+    rows.reverse! if %w[earnings dd nocut].include?(sort) && dir == "asc"
+    rows.reverse! if sort == "player" && dir == "desc"
+    rows
   end
 
   def tournament_standings(tournament)
-    sort = @sort || "earnings"
-    dir  = @dir  || "desc"
+    sort = (@initial_tab == "t#{tournament.id}" ? @sort : nil) || "earnings"
+    dir  = (@initial_tab == "t#{tournament.id}" ? @dir  : nil) || "desc"
 
     picks = Pick.where(tournament: tournament)
                 .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id
@@ -213,8 +230,8 @@ class StandingsController < ApplicationController
   end
 
   def live_standings(tournament)
-    sort = @sort || "earnings"
-    dir  = @dir  || "desc"
+    sort = (@initial_tab == "live" ? @sort : nil) || "earnings"
+    dir  = (@initial_tab == "live" ? @dir  : nil) || "desc"
 
     picks = Pick.where(tournament: tournament)
                 .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id AND tournament_results.golfer_id = picks.golfer_id")
@@ -311,9 +328,6 @@ class StandingsController < ApplicationController
   end
 
   def field_standings(tournament)
-    sort = @sort || "score"
-    dir  = @dir  || "asc"
-
     # All synced results for this tournament (one per golfer in the field)
     results = TournamentResult.where(tournament: tournament).includes(:golfer).to_a
 
@@ -334,18 +348,17 @@ class StandingsController < ApplicationController
       }
     end
 
-    rows.sort_by! do |r|
-      cut = r[:position_display] == "CUT" ? 1 : 0
-      case sort
-      when "golfer" then [cut, r[:golfer].name]
-      when "pos"    then [cut, r[:current_position] || 9999, r[:golfer].name]
-      when "thru"   then [cut, thru_sort_val(r[:thru]), r[:golfer].name]
-      else               [cut, r[:score_to_par] || 999, r[:golfer].name]
+    # Fixed sort: earnings desc for active players, then CUT, then WD
+    bottom_val = ->(r) {
+      case r[:position_display]
+      when "WD"  then 2
+      when "CUT" then 1
+      else 0
       end
+    }
+    rows.sort_by! do |r|
+      [bottom_val.call(r), -(r[:earnings_cents] || 0), r[:current_position] || 9999, r[:golfer].name]
     end
-    rows.reverse! if dir == "desc"
-    # After reversing, CUT players would move to the top — put them back at the bottom
-    rows.sort_by!.with_index { |r, i| [r[:position_display] == "CUT" ? 1 : 0, i] } if dir == "desc"
     rows
   end
 

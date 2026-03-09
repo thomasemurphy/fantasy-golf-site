@@ -44,7 +44,7 @@
   <%# --- Live tab --- %>
   <% if @live_tournament %>
     <% live_base = { tab: "live" } %>
-    <% cur_sort  = @sort || "earnings"; cur_dir = @dir || "desc" %>
+    <% cur_sort  = (@initial_tab == "live" ? @sort : nil) || "earnings"; cur_dir = (@initial_tab == "live" ? @dir : nil) || "desc" %>
     <% on_cooldown = @last_refreshed && Time.current - @last_refreshed < StandingsController::REFRESH_COOLDOWN %>
 
     <div id="tab-live" class="tab-pane fade <%= 'show active' if @initial_tab == 'live' %>" role="tabpanel">
@@ -212,7 +212,7 @@
       ["first_half",  @first_half_standings,  "1st Half"],
       ["second_half", @second_half_standings, "2nd Half"]].each do |tid, standings, _label| %>
     <div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
-      <%= render "season_table", standings: standings %>
+      <%= render "season_table", standings: standings, tab_id: tid %>
     </div>
   <% end %>
 
@@ -225,7 +225,7 @@
 
 <%# Sync active state across the two nav rows when switching tabs %>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('turbo:load', function() {
     var outerTabContent = document.querySelector('div.tab-content');
     var allNavBtns = document.querySelectorAll('#mainTabs [data-bs-toggle="tab"], #weekTabs [data-bs-toggle="tab"]');
 

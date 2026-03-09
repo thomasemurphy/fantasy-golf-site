@@ -1,13 +1,17 @@
 <% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
+<% dd_min = standings.map { |r| r[:user].double_downs_remaining }.min %>
+<% scoped = @initial_tab == tab_id %>
+<% cur_sort = (scoped ? @sort : nil) || "earnings"; cur_dir = (scoped ? @dir : nil) || "desc" %>
+<% s_base = { tab: tab_id } %>
 <div class="standings-table-wrapper">
   <table class="standings-table">
     <thead>
       <tr>
         <th>Rank</th>
-        <th>Player</th>
-        <th class="text-end">Earnings</th>
-        <th class="text-center">2x Left</th>
-        <th class="text-center">No-Cut</th>
+        <th><%= sort_header("Player",   "player", s_base, cur_sort, cur_dir) %></th>
+        <th class="text-end"><%= sort_header("Earnings", "earnings", s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+        <th class="text-center"><%= sort_header("2x Left", "dd",     s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+        <th class="text-center"><%= sort_header("No-Cut",  "nocut",  s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
       </tr>
     </thead>
     <tbody>
@@ -62,7 +66,9 @@
               <span class="text-muted">—</span>
             <% end %>
           </td>
-          <td class="text-center"><%= row[:user].double_downs_remaining %></td>
+          <% dd = row[:user].double_downs_remaining %>
+          <% dd_hue = dd_min == 5 ? 120 : ((dd - dd_min).to_f / (5 - dd_min) * 120).round %>
+          <td class="text-center" style="color: hsl(<%= dd_hue %>, 65%, 42%); font-weight: 600"><%= dd %></td>
           <td class="text-center">
             <% if no_cut_alive_ids.include?(row[:user].id) %>
               <span class="text-success fw-semibold">Still alive</span>

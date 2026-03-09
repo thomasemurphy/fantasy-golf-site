@@ -1,7 +1,8 @@
 <% t      = td[:tournament] %>
 <% tid   = "t#{t.id}" %>
 <% t_base = { tournament_id: t.id } %>
-<% cur_sort = @sort || "earnings"; cur_dir = @dir || "desc" %>
+<% scoped = @initial_tab == tid %>
+<% cur_sort = (scoped ? @sort : nil) || "earnings"; cur_dir = (scoped ? @dir : nil) || "desc" %>
 
 <div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
   <div class="live-standings-outer">
@@ -104,10 +105,10 @@
           <table class="standings-table">
             <thead>
               <tr>
-                <th class="text-center"><%= sort_header("Pos",      "pos",      t_base, cur_sort, cur_dir) %></th>
-                <th><%= sort_header("Golfer",   "golfer",   t_base, cur_sort, cur_dir) %></th>
-                <th class="text-center"><%= sort_header("Score",    "score",    t_base, cur_sort, cur_dir) %></th>
-                <th class="text-end"><%= sort_header("Earnings",   "earnings", t_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                <th class="text-center">Pos</th>
+                <th>Golfer</th>
+                <th class="text-center">Score</th>
+                <th class="text-end">Earnings</th>
                 <th>Picked By</th>
               </tr>
             </thead>
