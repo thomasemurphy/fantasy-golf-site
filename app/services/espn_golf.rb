@@ -66,7 +66,10 @@ class EspnGolf
     rounds        = c["linescores"] || []
     rounds_played = rounds.length
 
-    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" }
+    # ESPN signals WD in two ways:
+    #   1. A round linescore with displayValue == "-"
+    #   2. A bare stub entry with only a "period" key and no score data (e.g. {"period"=>2})
+    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" || (r["period"] && r["value"].nil? && r["displayValue"].nil? && r["linescores"].nil?) }
     missed_cut = !withdrawn && period > 2 && rounds_played < 3
 
     rank, position_display = if withdrawn
