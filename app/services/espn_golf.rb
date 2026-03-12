@@ -67,9 +67,12 @@ class EspnGolf
     rounds_played = rounds.length
 
     # ESPN signals WD in two ways:
-    #   1. A round linescore with displayValue == "-"
-    #   2. A bare stub entry with only a "period" key and no score data (e.g. {"period"=>2})
-    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" || (r["period"] && r["value"].nil? && r["displayValue"].nil? && r["linescores"].nil?) }
+    #   1. A round linescore with displayValue == "-"  (seen at Arnold Palmer)
+    #   2. A round entry has a score value but no inner hole-by-hole linescores
+    #      (active players always have inner linescores; WD players don't)
+    #      Future-round stubs like {"period"=>2} have no value either, so they're excluded.
+    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" } ||
+                 rounds.any? { |r| !r["value"].nil? && r["linescores"].nil? }
     missed_cut = !withdrawn && period > 2 && rounds_played < 3
 
     rank, position_display = if withdrawn
