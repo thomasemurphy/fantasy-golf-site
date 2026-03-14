@@ -65,6 +65,7 @@ class EspnGolf
     score_to_par  = parse_score(score_str)
     rounds        = c["linescores"] || []
     rounds_played = rounds.length
+    tee_time      = extract_tee_time(rounds.find { |r| r["period"] == period })
 
     # ESPN signals WD in two ways:
     #   1. A round linescore has displayValue=="-" AND inner hole linescores exist
@@ -94,7 +95,7 @@ class EspnGolf
       rank:             rank,
       position_display: position_display,
       score_to_par:     score_to_par,
-      thru:             compute_thru(rounds, period, completed, missed_cut || withdrawn),
+      thru:             compute_thru(rounds, period, completed, missed_cut || withdrawn, tee_time),
       current_round:    period,
       made_cut:         !missed_cut && !withdrawn
     }
@@ -105,15 +106,33 @@ class EspnGolf
     str.to_i
   end
 
-  def compute_thru(rounds, period, completed, missed_cut)
+  def compute_thru(rounds, period, completed, missed_cut, tee_time = nil)
     return nil if missed_cut
     return "F" if completed
 
-    # Find this player's linescore for the current round
     current_round_data = rounds.find { |r| r["period"] == period }
-    return nil unless current_round_data  # hasn't teed off yet
+    return tee_time if current_round_data.nil?
 
     holes_played = current_round_data["linescores"]&.length.to_i
-    holes_played == 18 ? "F" : (holes_played > 0 ? holes_played.to_s : nil)
+    if holes_played == 18
+      "F"
+    elsif holes_played > 0
+      holes_played.to_s
+    else
+      tee_time  # on the tee sheet but hasn't started yet
+    end
+  end
+
+  def extract_tee_time(round_linescore)
+    return nil unless round_linescore
+    stats = round_linescore.dig("statistics", "categories", 0, "stats") || []
+    # The tee time entry has only a displayValue key (no numeric value)
+    tee_stat = stats.find { |s| !s.key?("value") }
+    return nil unless tee_stat
+    t = Time.parse(tee_stat["displayValue"])
+            .in_time_zone("Eastern Time (US & Canada)")
+    t.strftime("%-I:%M%p").downcase.sub("pm", "p").sub("am", "a")
+  rescue
+    nil
   end
 end
