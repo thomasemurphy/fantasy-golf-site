@@ -67,12 +67,15 @@ class EspnGolf
     rounds_played = rounds.length
 
     # ESPN signals WD in two ways:
-    #   1. A round linescore with displayValue == "-"  (seen at Arnold Palmer)
-    #   2. A round entry has a score value but no inner hole-by-hole linescores
-    #      (active players always have inner linescores; WD players don't)
-    #      Future-round stubs like {"period"=>2} have no value either, so they're excluded.
-    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" } ||
-                 rounds.any? { |r| !r["value"].nil? && r["linescores"].nil? }
+    #   1. A round linescore has displayValue=="-" AND inner hole linescores exist
+    #      (player started the round, played some holes, then withdrew).
+    #      Note: pre-round stubs also use displayValue=="-" but have no inner linescores,
+    #      so requiring linescores.present? excludes them.
+    #   2. A round entry has actual strokes (value > 0) but no inner linescores
+    #      (Morikawa-style: partial score recorded but hole data stripped).
+    #      Pre-round stubs use value=0.0, so checking > 0 excludes them.
+    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" && r["linescores"].to_a.any? } ||
+                 rounds.any? { |r| r["value"].to_f > 0 && r["linescores"].nil? }
     missed_cut = !withdrawn && period > 2 && rounds_played < 3
 
     rank, position_display = if withdrawn
