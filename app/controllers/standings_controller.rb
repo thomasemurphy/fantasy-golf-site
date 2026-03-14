@@ -276,6 +276,7 @@ class StandingsController < ApplicationController
     # Preload completed pick history for tooltips
     user_ids = picks.map(&:user_id).uniq
     completed_tid = Tournament.where(status: "completed").pluck(:id)
+    completed_tournaments_ordered = Tournament.where(id: completed_tid).order(:week_number).to_a
     results_index = TournamentResult.where(tournament_id: completed_tid)
                                     .index_by { |r| [r.tournament_id, r.golfer_id] }
     history_picks = Pick.where(user_id: user_ids, tournament_id: completed_tid)
@@ -285,6 +286,14 @@ class StandingsController < ApplicationController
          .map { |p| { pick: p, position: results_index[[p.tournament_id, p.golfer_id]]&.current_position_display } }
     end
     total_earnings_by_user = history_picks.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
+
+    # Golfer history for golfer tooltips
+    golfer_ids = picks.map(&:golfer_id).uniq
+    golfer_history = golfer_ids.index_with do |gid|
+      completed_tournaments_ordered.map do |t|
+        { tournament: t, result: results_index[[t.id, gid]] }
+      end
+    end
 
     # Overall rank for tooltip header
     all_users = User.where(approved: true).where.not(name: "Commissioner").to_a
@@ -353,7 +362,8 @@ class StandingsController < ApplicationController
         current_earnings_cents: pick.auto_assigned? ? 0 : (pick.is_double_down? ? pick.current_earnings_cents.to_i * 2 : pick.current_earnings_cents),
         completed_picks:        history_by_user[pick.user_id] || [],
         total_earnings_cents:   total_earnings_by_user[pick.user_id] || 0,
-        overall_rank:           overall_rank_by_user_id[pick.user_id] || "—"
+        overall_rank:           overall_rank_by_user_id[pick.user_id] || "—",
+        golfer_history:         golfer_history[pick.golfer_id] || []
       }
     end
   end
