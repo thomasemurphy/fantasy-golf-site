@@ -23,7 +23,8 @@
         <tr class="<%= 'highlight' if row[:user] == current_user %>">
           <td><span class="standings-rank"><%= row[:rank] %></span></td>
           <td>
-            <% if row[:completed_picks].any? %>
+            <% lp = row[:live_pick] %>
+            <% if row[:completed_picks].any? || lp %>
               <% ttl = row[:total_earnings_cents].to_i %>
               <span data-controller="tooltip"
                     data-tooltip-title-value="<%= row[:user].name %>"
@@ -54,6 +55,20 @@
                             <span style="color:#aaa">$0</span>
                           <% end %>
                         </td>
+                      </tr>
+                    <% end %>
+                    <% if lp %>
+                      <% lp_pick = lp[:pick] %>
+                      <tr style="color:#5b8dd9;font-style:italic">
+                        <td style="color:#7aaae8;padding-right:10px;white-space:nowrap">Wk<%= lp_pick.tournament.week_number %></td>
+                        <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(lp_pick.tournament.name) %></td>
+                        <td style="padding-right:12px;white-space:nowrap">
+                          <%= lp_pick.golfer.name %>
+                          <% if lp_pick.is_double_down? %><span style="color:#b8a830;font-size:10px;font-weight:600;font-style:normal">2x</span><% end %>
+                          <% if lp_pick.auto_assigned? %><span style="color:#7aaae8;font-size:10px">(auto)</span><% end %>
+                        </td>
+                        <td style="padding-right:12px;white-space:nowrap"><%= lp[:position] || "—" %></td>
+                        <td style="text-align:right;white-space:nowrap">live</td>
                       </tr>
                     <% end %>
                   </table>

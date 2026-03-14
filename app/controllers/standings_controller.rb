@@ -92,6 +92,18 @@ class StandingsController < ApplicationController
     results_index = TournamentResult.where(tournament_id: completed_tid)
                                     .index_by { |r| [r.tournament_id, r.golfer_id] }
 
+    # Live pick data for in-progress tournament tooltip
+    live_pick_by_user_id = {}
+    if @live_tournament
+      live_picks = Pick.where(tournament: @live_tournament, user_id: users.map(&:id))
+                       .includes(:golfer).index_by(&:user_id)
+      live_results = TournamentResult.where(tournament: @live_tournament).index_by(&:golfer_id)
+      live_pick_by_user_id = live_picks.transform_values do |pick|
+        result = live_results[pick.golfer_id]
+        { pick: pick, position: result&.current_position_display }
+      end
+    end
+
     # Rank is always earnings-based, independent of display sort
     by_earnings = users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
     rank = 1
@@ -107,7 +119,7 @@ class StandingsController < ApplicationController
                                 { pick: p, position: result&.current_position_display }
                               }
         total_earnings = user.picks.sum { |p| p.earnings_cents.to_i }
-        { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings }
+        { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings, live_pick: live_pick_by_user_id[user.id] }
       end
     end
 
