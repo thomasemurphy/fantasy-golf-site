@@ -129,8 +129,10 @@ class EspnGolf
     # The tee time entry has only a displayValue key (no numeric value)
     tee_stat = stats.find { |s| !s.key?("value") }
     return nil unless tee_stat
-    t = Time.parse(tee_stat["displayValue"])
-            .in_time_zone("Pacific Time (US & Canada)")
+    # ESPN labels tee times with the local server timezone (e.g. "PDT") but the
+    # actual value is Eastern time. Force parse as Eastern before converting.
+    eastern_str = tee_stat["displayValue"].sub(/\b[A-Z]{2,4}\b/, "EDT")
+    t = Time.parse(eastern_str).in_time_zone("Pacific Time (US & Canada)")
     tz = t.zone.sub(/[DS]T/, "T")  # PDT→PT, PST→PT, EDT→ET, etc.
     t.strftime("%-I:%M%p").downcase.sub("pm", "p").sub("am", "a") + " #{tz}"
   rescue
