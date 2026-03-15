@@ -17,7 +17,8 @@ class StandingsController < ApplicationController
 
     SyncTournamentResultsJob.perform_now(tournament.id)
     Rails.cache.write("standings_last_refreshed", Time.current, expires_in: 10.minutes)
-    redirect_to standings_path(tab: "live")
+    return_tab = params[:return_tab].presence || "live"
+    redirect_to standings_path(tab: return_tab)
   end
 
   def index

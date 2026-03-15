@@ -61,7 +61,9 @@
             <%= button_to refresh_standings_path, method: :post,
                   class: "btn btn-sm btn-outline-success #{'disabled' if on_cooldown}",
                   disabled: on_cooldown,
-                  form: { data: { turbo: false } } do %>
+                  id: "refresh-btn",
+                  form: { id: "refresh-form", data: { turbo: false } } do %>
+              <input type="hidden" name="return_tab" id="refresh-return-tab" value="live">
               ↻ Refresh
             <% end %>
             <div class="btn-group btn-group-sm pool-field-toggle" role="group">
@@ -392,13 +394,49 @@
 <script>
   (function() {
     var refreshedAt = <%= @last_refreshed.to_i %> * 1000;
+    var cooldown = <%= StandingsController::REFRESH_COOLDOWN %>;
     function updateLabels() {
       var elapsed = (Date.now() - refreshedAt) / 1000;
-      var text = elapsed < 8 ? "Updated just now" : "Updated less than a minute ago";
+      var text;
+      if (elapsed < 8) {
+        text = "Updated just now";
+      } else if (elapsed < 60) {
+        text = "Updated less than a minute ago";
+      } else {
+        var mins = Math.floor(elapsed / 60);
+        text = "Updated " + mins + (mins === 1 ? " minute" : " minutes") + " ago";
+      }
       document.querySelectorAll(".refreshed-label").forEach(function(el) { el.textContent = text; });
+
+      // Re-enable the refresh button once cooldown has passed
+      var btn = document.getElementById("refresh-btn");
+      if (btn && elapsed >= cooldown) {
+        btn.classList.remove("disabled");
+        btn.disabled = false;
+      }
     }
     updateLabels();
     setInterval(updateLabels, 1000);
   })();
 </script>
 <% end %>
+
+<script>
+  (function() {
+    // Keep return_tab hidden input in sync with whatever tab is currently active
+    function syncReturnTab() {
+      var input = document.getElementById("refresh-return-tab");
+      if (!input) return;
+      var active = document.querySelector(".nav-tabs .nav-link.active");
+      if (active && active.dataset.bsTarget) {
+        input.value = active.dataset.bsTarget.replace("#tab-", "");
+      }
+    }
+    document.addEventListener("turbo:load", function() {
+      syncReturnTab();
+      document.querySelectorAll(".nav-tabs .nav-link").forEach(function(tab) {
+        tab.addEventListener("shown.bs.tab", syncReturnTab);
+      });
+    });
+  })();
+</script>
