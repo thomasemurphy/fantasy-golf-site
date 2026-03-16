@@ -26,6 +26,13 @@ class User < ApplicationRecord
          .sum(:earnings_cents)
   end
 
+  def pink_events_earnings_cents
+    picks.joins(:tournament)
+         .where(tournaments: { tournament_type: "pink_event" })
+         .where.not(earnings_cents: nil)
+         .sum(:earnings_cents)
+  end
+
   def first_half_earnings_cents
     picks.joins(:tournament)
          .where(tournaments: { week_number: 1..14 })

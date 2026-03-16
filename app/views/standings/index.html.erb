@@ -12,11 +12,11 @@
       </button>
     </li>
   <% end %>
-  <% [["overall","Overall"],["majors","Majors"],["side_events","Side Events"],["first_half","1st Half"],["second_half","2nd Half"]].each do |tid, label| %>
+  <% [["overall","Overall",nil],["majors","Majors","#c0392b"],["side_events","High-Purse Side Pot","#198754"],["pink_events","Low-Purse Side Pot","#d63384"],["first_half","1st Half",nil],["second_half","2nd Half",nil]].each do |tid, label, color| %>
     <li class="nav-item" role="presentation">
       <button class="nav-link <%= 'active' if @initial_tab == tid %>"
               data-bs-toggle="tab" data-bs-target="#tab-<%= tid %>" type="button" role="tab">
-        <%= label %>
+        <% if color %><span style="color:<%= color %>"><%= label %></span><% else %><%= label %><% end %>
       </button>
     </li>
   <% end %>
@@ -329,10 +329,11 @@
     </div>
   </div>
 
-  <% [["majors",      @majors_standings,      "Majors"],
-      ["side_events", @side_events_standings, "Side Events"],
-      ["first_half",  @first_half_standings,  "1st Half"],
-      ["second_half", @second_half_standings, "2nd Half"]].each do |tid, standings, _label| %>
+  <% [["majors",       @majors_standings,      "Majors"],
+      ["side_events",  @side_events_standings, "High-Purse Side Pot"],
+      ["pink_events",  @pink_events_standings, "Low-Purse Side Pot"],
+      ["first_half",   @first_half_standings,  "1st Half"],
+      ["second_half",  @second_half_standings, "2nd Half"]].each do |tid, standings, _label| %>
     <div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
       <%= render "season_table", standings: standings, tab_id: tid %>
     </div>

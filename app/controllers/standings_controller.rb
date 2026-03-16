@@ -64,11 +64,12 @@ class StandingsController < ApplicationController
     end
 
     # Load all standings data at once so tab switching is instant
-    @overall_standings     = compute_standings("overall")
-    @majors_standings      = compute_standings("majors")
-    @side_events_standings = compute_standings("side_events")
-    @first_half_standings  = compute_standings("first_half")
-    @second_half_standings = compute_standings("second_half")
+    @overall_standings      = compute_standings("overall")
+    @majors_standings       = compute_standings("majors")
+    @side_events_standings  = compute_standings("side_events")
+    @pink_events_standings  = compute_standings("pink_events")
+    @first_half_standings   = compute_standings("first_half")
+    @second_half_standings  = compute_standings("second_half")
 
     if @live_tournament
       @live_pool_standings  = live_standings(@live_tournament)
@@ -265,10 +266,11 @@ class StandingsController < ApplicationController
 
   def earnings_for_tab(user, tab)
     case tab
-    when "majors" then user.majors_earnings_cents
-    when "side_events" then user.side_events_earnings_cents
-    when "first_half" then user.first_half_earnings_cents
-    when "second_half" then user.second_half_earnings_cents
+    when "majors"       then user.majors_earnings_cents
+    when "side_events"  then user.side_events_earnings_cents
+    when "pink_events"  then user.pink_events_earnings_cents
+    when "first_half"   then user.first_half_earnings_cents
+    when "second_half"  then user.second_half_earnings_cents
     else user.total_earnings_cents
     end
   end
