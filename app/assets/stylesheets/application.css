@@ -165,6 +165,13 @@
   background-color: #1f1f1f;
 }
 
+/* Lighter active state for nav pills so colored tab labels stay readable */
+#mainTabs .nav-link.active,
+#weekTabs .nav-link.active {
+  background-color: #6ea8d8;
+  color: #fff;
+}
+
 /* Smaller tournament pills row */
 .nav-link-sm {
   font-size: 0.78rem;

@@ -12,7 +12,7 @@
       </button>
     </li>
   <% end %>
-  <% [["overall","Overall",nil],["majors","Majors","#c0392b"],["side_events","High-Purse Side Pot","#198754"],["pink_events","Low-Purse Side Pot","#d63384"],["first_half","1st Half",nil],["second_half","2nd Half",nil]].each do |tid, label, color| %>
+  <% [["overall","Main Pot",nil],["majors","Majors Pot","#c0392b"],["side_events","High-Purse Side Pot","#198754"],["pink_events","Low-Purse Side Pot","#d63384"],["first_half","🕐 1st Half",nil],["second_half","🕢 2nd Half",nil]].each do |tid, label, color| %>
     <li class="nav-item" role="presentation">
       <button class="nav-link <%= 'active' if @initial_tab == tid %>"
               data-bs-toggle="tab" data-bs-target="#tab-<%= tid %>" type="button" role="tab">
