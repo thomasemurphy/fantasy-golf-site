@@ -165,26 +165,27 @@
   background-color: #1f1f1f;
 }
 
+/* Hover state for nav pills */
+#mainTabs .nav-link:not(.active):hover,
+#weekTabs .nav-link:not(.active):hover {
+  background-color: rgba(169, 204, 232, 0.25);
+}
+
 /* Lighter active state for nav pills so colored tab labels stay readable */
 #mainTabs .nav-link.active,
 #weekTabs .nav-link.active {
-  background-color: #6ea8d8;
+  background-color: #a8cce8;
   color: #fff;
 }
 
 /* Tournament category color coding */
+.tab-label-regular     { color: #195AD4; }
 .tab-label-major       { color: #c0392b; }
 .tab-label-side-event  { color: #198754; }
 .tab-label-pink-event  { color: #e07ab8; }
 .tab-label-first-half  { color: #F5D049; }
 .tab-label-second-half { color: #D46C19; }
 
-/* When a pill is active, all category labels become white */
-.nav-link.active .tab-label-major,
-.nav-link.active .tab-label-side-event,
-.nav-link.active .tab-label-pink-event,
-.nav-link.active .tab-label-first-half,
-.nav-link.active .tab-label-second-half { color: #fff; }
 
 /* Smaller tournament pills row */
 .nav-link-sm {

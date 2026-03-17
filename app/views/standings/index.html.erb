@@ -12,11 +12,38 @@
       </button>
     </li>
   <% end %>
-  <% [["overall","Main Pot",nil],["majors","Majors Pot","tab-label-major"],["side_events","High-Purse Side Pot","tab-label-side-event"],["pink_events","Low-Purse Side Pot","tab-label-pink-event"],["first_half","🕐 1st Half","tab-label-first-half"],["second_half","🕢 2nd Half","tab-label-second-half"]].each do |tid, label, css_class| %>
+  <% [["overall","Main Pot","tab-label-regular",nil],["majors","Majors Pot","tab-label-major","15% of total pot"],["side_events","High-Purse Side Pot","tab-label-side-event","15% of total pot"],["pink_events","Low-Purse Side Pot","tab-label-pink-event","$500"],["first_half","🕐 1st Half","tab-label-first-half","$300"],["second_half","🕢 2nd Half","tab-label-second-half","$300"]].each do |tid, label, css_class, prize_text| %>
+    <% pot_tourneys = @pot_tournaments[tid] %>
     <li class="nav-item" role="presentation">
       <button class="nav-link <%= 'active' if @initial_tab == tid %>"
               data-bs-toggle="tab" data-bs-target="#tab-<%= tid %>" type="button" role="tab">
-        <% if css_class %><span class="<%= css_class %>"><%= label %></span><% else %><%= label %><% end %>
+        <% if prize_text %>
+          <span data-controller="tooltip" data-tooltip-position-value="below">
+            <span data-tooltip-target="trigger"
+                  data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
+                  class="<%= css_class %>"><%= label %></span>
+            <span data-tooltip-target="content" style="display:none">
+              <div style="color:#aaa;font-style:italic;margin-bottom:4px"><%= prize_text %></div>
+              <% if pot_tourneys %>
+                <table style="border-spacing:0;line-height:1.9">
+                  <% pot_tourneys.each do |t| %>
+                    <% d1 = t.start_date; d2 = t.end_date %>
+                    <% dates = d1.month == d2.month ? "#{d1.strftime('%b %-d')}-#{d2.strftime('%-d')}" : "#{d1.strftime('%b %-d')}-#{d2.strftime('%b %-d')}" %>
+                    <tr>
+                      <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk&nbsp;<%= t.week_number %></td>
+                      <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(t.name) %></td>
+                      <td style="white-space:nowrap;color:#6c757d"><%= dates %></td>
+                    </tr>
+                  <% end %>
+                </table>
+              <% end %>
+            </span>
+          </span>
+        <% elsif css_class %>
+          <span class="<%= css_class %>"><%= label %></span>
+        <% else %>
+          <%= label %>
+        <% end %>
       </button>
     </li>
   <% end %>
@@ -25,7 +52,7 @@
 <%# === NAV ROW 2: per-tournament week tabs === %>
 <% if @completed_tournaments.any? %>
   <ul class="nav nav-pills nav-pills-sm flex-wrap mb-4" id="weekTabs" role="tablist">
-    <% type_class = { "major" => "tab-label-major", "side_event" => "tab-label-side-event", "pink_event" => "tab-label-pink-event" } %>
+    <% type_class = { "regular" => "tab-label-regular", "major" => "tab-label-major", "side_event" => "tab-label-side-event", "pink_event" => "tab-label-pink-event" } %>
     <% @completed_tournaments.each do |t| %>
       <% target = t.status == "in_progress" ? "tab-live" : "tab-t#{t.id}" %>
       <% active  = t.status == "in_progress" ? @initial_tab == "live" : @initial_tab == "t#{t.id}" %>

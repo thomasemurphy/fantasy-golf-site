@@ -64,6 +64,12 @@ class StandingsController < ApplicationController
     end
 
     # Load all standings data at once so tab switching is instant
+    @pot_tournaments = {
+      "majors"      => Tournament.where(tournament_type: "major").order(:week_number).to_a,
+      "side_events" => Tournament.where(tournament_type: "side_event").order(:week_number).to_a,
+      "pink_events" => Tournament.where(tournament_type: "pink_event").order(:week_number).to_a,
+    }
+
     @overall_standings      = compute_standings("overall")
     @majors_standings       = compute_standings("majors")
     @side_events_standings  = compute_standings("side_events")
