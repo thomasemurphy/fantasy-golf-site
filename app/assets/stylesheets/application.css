@@ -172,6 +172,20 @@
   color: #fff;
 }
 
+/* Tournament category color coding */
+.tab-label-major       { color: #c0392b; }
+.tab-label-side-event  { color: #198754; }
+.tab-label-pink-event  { color: #e07ab8; }
+.tab-label-first-half  { color: #F5D049; }
+.tab-label-second-half { color: #D46C19; }
+
+/* When a pill is active, all category labels become white */
+.nav-link.active .tab-label-major,
+.nav-link.active .tab-label-side-event,
+.nav-link.active .tab-label-pink-event,
+.nav-link.active .tab-label-first-half,
+.nav-link.active .tab-label-second-half { color: #fff; }
+
 /* Smaller tournament pills row */
 .nav-link-sm {
   font-size: 0.78rem;

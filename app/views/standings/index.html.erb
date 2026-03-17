@@ -12,11 +12,11 @@
       </button>
     </li>
   <% end %>
-  <% [["overall","Main Pot",nil],["majors","Majors Pot","#c0392b"],["side_events","High-Purse Side Pot","#198754"],["pink_events","Low-Purse Side Pot","#d63384"],["first_half","🕐 1st Half",nil],["second_half","🕢 2nd Half",nil]].each do |tid, label, color| %>
+  <% [["overall","Main Pot",nil],["majors","Majors Pot","tab-label-major"],["side_events","High-Purse Side Pot","tab-label-side-event"],["pink_events","Low-Purse Side Pot","tab-label-pink-event"],["first_half","🕐 1st Half","tab-label-first-half"],["second_half","🕢 2nd Half","tab-label-second-half"]].each do |tid, label, css_class| %>
     <li class="nav-item" role="presentation">
       <button class="nav-link <%= 'active' if @initial_tab == tid %>"
               data-bs-toggle="tab" data-bs-target="#tab-<%= tid %>" type="button" role="tab">
-        <% if color %><span style="color:<%= color %>"><%= label %></span><% else %><%= label %><% end %>
+        <% if css_class %><span class="<%= css_class %>"><%= label %></span><% else %><%= label %><% end %>
       </button>
     </li>
   <% end %>
@@ -25,13 +25,15 @@
 <%# === NAV ROW 2: per-tournament week tabs === %>
 <% if @completed_tournaments.any? %>
   <ul class="nav nav-pills nav-pills-sm flex-wrap mb-4" id="weekTabs" role="tablist">
+    <% type_class = { "major" => "tab-label-major", "side_event" => "tab-label-side-event", "pink_event" => "tab-label-pink-event" } %>
     <% @completed_tournaments.each do |t| %>
       <% target = t.status == "in_progress" ? "tab-live" : "tab-t#{t.id}" %>
       <% active  = t.status == "in_progress" ? @initial_tab == "live" : @initial_tab == "t#{t.id}" %>
+      <% name_class = type_class[t.tournament_type] %>
       <li class="nav-item" role="presentation">
         <button class="nav-link nav-link-sm <%= 'active' if active %>"
                 data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab">
-          <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><%= t.name %>
+          <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% if name_class %><span class="<%= name_class %>"><%= t.name %></span><% else %><%= t.name %><% end %>
         </button>
       </li>
     <% end %>
