@@ -12,7 +12,7 @@
       </button>
     </li>
   <% end %>
-  <% [["overall","Main Pot","tab-label-regular",nil],["majors","Majors Pot","tab-label-major","15% of total pot"],["side_events","High-Purse Side Pot","tab-label-side-event","15% of total pot"],["pink_events","Low-Purse Side Pot","tab-label-pink-event","$500"],["first_half","🕐 1st Half","tab-label-first-half","$300"],["second_half","🕢 2nd Half","tab-label-second-half","$300"]].each do |tid, label, css_class, prize_text| %>
+  <% [["overall","Main Pot","tab-label-regular","~60% of total pot, ~$6,700","All events"],["majors","Majors Pot","tab-label-major","15% of total pot, ~$1,600",nil],["side_events","High-Purse Side Pot","tab-label-side-event","15% of total pot, ~$1,600",nil],["pink_events","Low-Purse Side Pot","tab-label-pink-event","$500",nil],["first_half","🕐 1st Half","tab-label-first-half","$300",nil],["second_half","🕢 2nd Half","tab-label-second-half","$300",nil]].each do |tid, label, css_class, prize_text, body_text| %>
     <% pot_tourneys = @pot_tournaments[tid] %>
     <li class="nav-item" role="presentation">
       <button class="nav-link <%= 'active' if @initial_tab == tid %>"
@@ -36,6 +36,8 @@
                     </tr>
                   <% end %>
                 </table>
+              <% elsif body_text %>
+                <div style="color:#6c757d;margin-top:2px"><%= body_text %></div>
               <% end %>
             </span>
           </span>
