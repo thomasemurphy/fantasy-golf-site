@@ -16,6 +16,25 @@ class SyncTournamentEarningsJob < ApplicationJob
       return
     end
 
+    # Sanity-check: verify returned players overlap with our known field.
+    # If the API returns stale data (e.g. prior year's results), last names won't match.
+    known_last_names = TournamentResult.where(tournament: tournament)
+                                       .joins(:golfer)
+                                       .pluck("golfers.name")
+                                       .map { |n| n.split.last.downcase }
+                                       .to_set
+
+    if known_last_names.any?
+      matched = results.count { |r| known_last_names.include?(r[:name].to_s.split.last.downcase) }
+      match_rate = matched.to_f / [results.size, known_last_names.size].min
+      if match_rate < 0.5
+        Rails.logger.warn "[SyncTournamentEarningsJob] Only #{(match_rate * 100).round}% of returned " \
+                          "players match known #{tournament.name} field — API may be returning a " \
+                          "different tournament or year. Skipping to avoid writing wrong earnings."
+        return
+      end
+    end
+
     matched   = 0
     unmatched = []
 

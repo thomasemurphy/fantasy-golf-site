@@ -8,7 +8,7 @@
   <%= form_with url: update_earnings_admin_tournament_path(@tournament), method: :post do |f| %>
     <div class="card mb-4">
       <div class="card-header d-flex align-items-center gap-3">
-        <span>Final Earnings by Golfer (<%= @results.count %> players)</span>
+        <span>Final Earnings by Golfer (<%= @results.count %> players) — pre-filled with projected earnings</span>
         <div class="form-check ms-auto mb-0">
           <input class="form-check-input" type="checkbox" name="mark_completed" value="1" id="mark_completed"
                  <%= @tournament.status == "completed" ? "checked" : "" %>>
@@ -44,7 +44,7 @@
                       <span class="input-group-text">$</span>
                       <input type="number" name="earnings[<%= result.id %>]" step="1" min="0"
                              class="form-control"
-                             value="<%= result.earnings_cents ? (result.earnings_cents / 100.0).to_i : '' %>"
+                             value="<%= (result.earnings_cents || result.current_earnings_cents)&.then { |c| (c / 100.0).to_i } %>"
                              placeholder="0"
                              <%= result.current_position_display == "CUT" ? 'disabled' : '' %>>
                     </div>
