@@ -100,9 +100,7 @@ class SyncTournamentResultsJob < ApplicationJob
       return g if strip_accents(g.name) == stripped
     end
 
-    last_name = espn_name.split.last.downcase
-    matches   = Golfer.all.select { |g| g.name.split.last.downcase == last_name }
-    matches.first if matches.one?
+    nil
   end
 
   # Standard PGA Tour payout percentages by finishing position (sums to 100%).
