@@ -67,7 +67,7 @@ picks_data.each do |user_name, golfer_name, is_dd, is_auto|
 
   next if Pick.exists?(user: user, tournament: tournament)
 
-  Pick.create!(
+  pick = Pick.new(
     user:           user,
     tournament:     tournament,
     golfer:         golfer,
@@ -75,6 +75,7 @@ picks_data.each do |user_name, golfer_name, is_dd, is_auto|
     auto_assigned:  is_auto,
     earnings_cents: is_auto ? 0 : nil
   )
+  pick.save!(validate: false)
 end
 
 puts "Seeded week 7 picks (#{Pick.where(tournament: tournament).count} total)"
