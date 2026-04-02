@@ -215,9 +215,10 @@
                         <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
                         <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
                         <td class="text-end">
+                          <% has_started = row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F" %>
                           <% if row[:pick].auto_assigned? %>
                             <span class="text-muted">$0</span>
-                          <% elsif row[:position_display] == 'WD' %>
+                          <% elsif row[:position_display] == 'WD' || !has_started %>
                             <span class="text-muted">—</span>
                           <% elsif row[:current_earnings_cents]&.positive? %>
                             $<%= number_with_delimiter((row[:current_earnings_cents] / 100.0).to_i) %>
