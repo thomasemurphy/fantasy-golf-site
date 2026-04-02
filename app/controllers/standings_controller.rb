@@ -419,16 +419,18 @@ class StandingsController < ApplicationController
       }
     end
 
-    # Fixed sort: earnings desc for active players, then CUT, then WD
-    bottom_val = ->(r) {
+    # Sort: started first, then not-yet-started, then CUT, then WD
+    # 0=started, 1=not_started, 2=CUT, 3=WD
+    tier = ->(r) {
       case r[:position_display]
-      when "WD"  then 2
-      when "CUT" then 1
-      else 0
+      when "WD"  then 3
+      when "CUT" then 2
+      else
+        r[:thru]&.match?(/\A\d+\z/) || r[:thru] == "F" ? 0 : 1
       end
     }
     rows.sort_by! do |r|
-      [bottom_val.call(r), -(r[:earnings_cents] || 0), r[:current_position] || 9999, r[:golfer].name]
+      [tier.call(r), -(r[:earnings_cents] || 0), r[:current_position] || 9999, r[:golfer].name]
     end
     rows
   end
