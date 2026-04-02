@@ -249,17 +249,28 @@
                       <th><%= sort_header("Golfer", "golfer", live_base, cur_sort, cur_dir) %></th>
                       <th><%= sort_header("Score",  "score",  live_base, cur_sort, cur_dir) %></th>
                       <th class="text-center"><%= sort_header("Thru", "thru", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                      <th class="text-end">Proj $</th>
                       <th>Picked By</th>
                     </tr>
                   </thead>
                   <tbody>
                     <% @live_field_standings.each do |row| %>
                       <% picked_by_me = row[:picks].any? { |p| p.user == current_user } %>
+                      <% field_started = row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F" %>
                       <tr class="<%= 'highlight' if picked_by_me %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
                         <td class="text-center"><%= row[:position_display].presence || "—" %></td>
                         <td><%= row[:golfer].name %></td>
-                        <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
+                        <td class="text-center"><%= field_started ? format_score(row[:score_to_par]) : "—" %></td>
                         <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
+                        <td class="text-end">
+                          <% if !field_started || row[:position_display].in?(%w[CUT WD]) %>
+                            <span class="text-muted">—</span>
+                          <% elsif row[:current_earnings_cents]&.positive? %>
+                            $<%= number_with_delimiter((row[:current_earnings_cents] / 100.0).to_i) %>
+                          <% else %>
+                            <span class="text-muted">—</span>
+                          <% end %>
+                        </td>
                         <td class="text-muted" style="font-size:0.875em">
                           <% row[:picks].each_with_index do |pick, i| %>
                             <%= pick.user.name %><% if pick.is_double_down? %>&nbsp;<span class="badge bg-warning text-dark">2x</span><% end %><%= i < row[:picks].size - 1 ? ", " : "" %>

@@ -409,13 +409,14 @@ class StandingsController < ApplicationController
 
     rows = results.map do |result|
       {
-        golfer:           result.golfer,
-        position_display: result.current_position_display,
-        score_to_par:     result.current_score_to_par,
-        thru:             result.current_thru,
-        current_position: result.current_position,
-        picks:            picks_by_golfer[result.golfer_id] || [],
-        earnings_cents:   result.earnings_cents
+        golfer:                 result.golfer,
+        position_display:       result.current_position_display,
+        score_to_par:           result.current_score_to_par,
+        thru:                   result.current_thru,
+        current_position:       result.current_position,
+        picks:                  picks_by_golfer[result.golfer_id] || [],
+        earnings_cents:         result.earnings_cents,
+        current_earnings_cents: result.current_earnings_cents
       }
     end
 
