@@ -346,17 +346,14 @@ class StandingsController < ApplicationController
 
     picks.sort_by! do |p|
       t = tier.call(p)
+      next [1, tee_time_minutes(p.current_thru), p.golfer.name, p.user.name] if t == 1
       case sort
       when "player"   then [t, p.user.name]
       when "golfer"   then [t, p.golfer.name, p.user.name]
       when "pos"      then [t, p.current_position || 9999, p.golfer.name, p.user.name]
       when "thru"     then [t, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       when "earnings"
-        if t == 0
-          [0, -effective_proj.call(p), p.golfer.name, p.user.name]
-        else
-          [t, p.golfer.name, p.user.name]
-        end
+        t == 0 ? [0, -effective_proj.call(p), p.golfer.name, p.user.name] : [t, p.golfer.name, p.user.name]
       else # "score"
         [t, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       end
@@ -431,9 +428,21 @@ class StandingsController < ApplicationController
       end
     }
     rows.sort_by! do |r|
-      [tier.call(r), -(r[:earnings_cents] || 0), r[:current_position] || 9999, r[:golfer].name]
+      t = tier.call(r)
+      t == 1 ? [1, tee_time_minutes(r[:thru]), r[:golfer].name] \
+             : [t, -(r[:earnings_cents] || 0), r[:current_position] || 9999, r[:golfer].name]
     end
     rows
+  end
+
+  # Convert a tee time string like "10:30a ET" or "1:45p ET" to minutes since midnight.
+  # Returns 9999 for nil or unparseable strings (sorts last within not-started tier).
+  def tee_time_minutes(thru)
+    return 9999 unless thru =~ /\A(\d+):(\d+)(a|p)/i
+    h, m, ampm = $1.to_i, $2.to_i, $3.downcase
+    h += 12 if ampm == "p" && h != 12
+    h -= 12 if ampm == "a" && h == 12
+    h * 60 + m
   end
 
   def thru_sort_val(thru)
