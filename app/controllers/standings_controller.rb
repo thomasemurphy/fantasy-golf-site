@@ -331,14 +331,17 @@ class StandingsController < ApplicationController
                overall_rank += group.size
              end
 
-    # 0=started, 1=not_started, 2=CUT, 3=WD, 4=auto
-    started_thru = ->(p) { p.current_thru&.match?(/\A\d+\z/) || p.current_thru == "F" }
+    # 0=started, 1=not_started_tournament (R1 only), 2=CUT, 3=WD, 4=auto
+    # Round 2+ players who haven't teed off are still tier 0 — they've already played R1.
+    not_started_tourney = ->(p) {
+      p.current_round == 1 && !(p.current_thru&.match?(/\A\d+\z/) || p.current_thru == "F")
+    }
     tier = ->(p) {
       if p.auto_assigned?                          then 4
       elsif p.current_position_display == "WD"     then 3
       elsif p.current_position_display == "CUT"    then 2
-      elsif started_thru.call(p)                   then 0
-      else                                              1
+      elsif not_started_tourney.call(p)            then 1
+      else                                              0
       end
     }
     effective_proj = ->(p) { p.auto_assigned? ? 0 : (p.is_double_down? ? p.current_earnings_cents.to_i * 2 : p.current_earnings_cents.to_i) }
@@ -410,6 +413,7 @@ class StandingsController < ApplicationController
         position_display:       result.current_position_display,
         score_to_par:           result.current_score_to_par,
         thru:                   result.current_thru,
+        round:                  result.current_round,
         current_position:       result.current_position,
         picks:                  picks_by_golfer[result.golfer_id] || [],
         earnings_cents:         result.earnings_cents,
@@ -417,14 +421,15 @@ class StandingsController < ApplicationController
       }
     end
 
-    # Sort: started first, then not-yet-started, then CUT, then WD
-    # 0=started, 1=not_started, 2=CUT, 3=WD
+    # Sort: started first, then not-yet-started (R1 only), then CUT, then WD
+    # 0=started, 1=not_started_tournament, 2=CUT, 3=WD
     tier = ->(r) {
       case r[:position_display]
       when "WD"  then 3
       when "CUT" then 2
       else
-        r[:thru]&.match?(/\A\d+\z/) || r[:thru] == "F" ? 0 : 1
+        not_started = r[:round] == 1 && !(r[:thru]&.match?(/\A\d+\z/) || r[:thru] == "F")
+        not_started ? 1 : 0
       end
     }
     rows.sort_by! do |r|

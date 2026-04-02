@@ -212,8 +212,8 @@
                           <% if row[:pick].is_double_down? %><span class="badge bg-warning text-dark ms-1">2x</span><% end %>
                           <% if row[:pick].auto_assigned? %><span class="badge bg-secondary ms-1">Auto</span><% end %>
                         </td>
-                        <% has_started = row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F" %>
-                        <td class="text-center"><%= row[:position_display].presence || "—" %></td>
+                        <% has_started = !(row[:round] == 1 && !(row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F")) %>
+                        <td class="text-center"><%= has_started ? (row[:position_display].presence || "—") : "—" %></td>
                         <td class="text-center"><%= has_started ? format_score(row[:score_to_par]) : "—" %></td>
                         <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
                         <td class="text-end">
@@ -256,9 +256,9 @@
                   <tbody>
                     <% @live_field_standings.each do |row| %>
                       <% picked_by_me = row[:picks].any? { |p| p.user == current_user } %>
-                      <% field_started = row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F" %>
+                      <% field_started = !(row[:round] == 1 && !(row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F")) %>
                       <tr class="<%= 'highlight' if picked_by_me %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
-                        <td class="text-center"><%= row[:position_display].presence || "—" %></td>
+                        <td class="text-center"><%= field_started ? (row[:position_display].presence || "—") : "—" %></td>
                         <td><%= row[:golfer].name %></td>
                         <td class="text-center"><%= field_started ? format_score(row[:score_to_par]) : "—" %></td>
                         <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
