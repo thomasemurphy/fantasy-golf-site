@@ -328,40 +328,46 @@ class StandingsController < ApplicationController
                overall_rank += group.size
              end
 
-    # 0=active, 1=CUT, 2=WD
-    bottom_val   = ->(p) { case p.current_position_display when "WD" then 2 when "CUT" then 1 else 0 end }
+    # 0=started, 1=not_started, 2=CUT, 3=WD, 4=auto
+    started_thru = ->(p) { p.current_thru&.match?(/\A\d+\z/) || p.current_thru == "F" }
+    tier = ->(p) {
+      if p.auto_assigned?                          then 4
+      elsif p.current_position_display == "WD"     then 3
+      elsif p.current_position_display == "CUT"    then 2
+      elsif started_thru.call(p)                   then 0
+      else                                              1
+      end
+    }
     effective_proj = ->(p) { p.auto_assigned? ? 0 : (p.is_double_down? ? p.current_earnings_cents.to_i * 2 : p.current_earnings_cents.to_i) }
-    dd_val       = ->(p) { p.is_double_down? ? 0 : 1 }
+    dd_val         = ->(p) { p.is_double_down? ? 0 : 1 }
 
     picks.sort_by! do |p|
-      bot = bottom_val.call(p)
+      t = tier.call(p)
       case sort
-      when "player"   then [bot, p.user.name]
-      when "golfer"   then [bot, p.golfer.name, p.user.name]
-      when "pos"      then [bot, p.current_position || 9999, p.golfer.name, p.user.name]
-      when "thru"     then [bot, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
+      when "player"   then [t, p.user.name]
+      when "golfer"   then [t, p.golfer.name, p.user.name]
+      when "pos"      then [t, p.current_position || 9999, p.golfer.name, p.user.name]
+      when "thru"     then [t, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       when "earnings"
-        if bot == 0
+        if t == 0
           [0, -effective_proj.call(p), p.golfer.name, p.user.name]
-        elsif bot == 2
-          [2, dd_val.call(p), p.golfer.name, p.user.name]
         else
-          [bot, 0, p.golfer.name, p.user.name]
+          [t, p.golfer.name, p.user.name]
         end
       else # "score"
-        [bot, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
+        [t, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       end
     end
     picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
 
-    # Tie-aware rank based on effective projected earnings (CUT/WD ranked "—")
-    by_earnings = picks.sort_by { |p| [bottom_val.call(p), -effective_proj.call(p), p.golfer.name, p.user.name] }
+    # Tie-aware rank: only started (tier 0) players receive a numeric rank
+    by_earnings = picks.sort_by { |p| [tier.call(p), -effective_proj.call(p), p.golfer.name, p.user.name] }
     rank_by_id = {}
     rank = 1
     by_earnings.chunk_while { |a, b|
-      bottom_val.call(a) == 0 && bottom_val.call(b) == 0 && effective_proj.call(a) == effective_proj.call(b)
+      tier.call(a) == 0 && tier.call(b) == 0 && effective_proj.call(a) == effective_proj.call(b)
     }.each do |group|
-      if bottom_val.call(group.first) > 0
+      if tier.call(group.first) > 0
         group.each { |p| rank_by_id[p.id] = "—" }
       else
         display = group.size > 1 ? "T#{rank}" : rank.to_s
