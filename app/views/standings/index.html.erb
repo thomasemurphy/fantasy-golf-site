@@ -95,12 +95,13 @@
                   id: "refresh-btn",
                   form: { id: "refresh-form", data: { turbo: false } } do %>
               <input type="hidden" name="return_tab" id="refresh-return-tab" value="live">
+              <input type="hidden" name="live_sub" id="refresh-live-sub" value="pool">
               ↻ Refresh
             <% end %>
             <div class="btn-group btn-group-sm pool-field-toggle" role="group">
-              <button class="btn btn-outline-secondary active"
+              <button class="btn btn-outline-secondary <%= 'active' if @initial_live_sub != 'field' %>"
                       data-bs-toggle="tab" data-bs-target="#live-pool" type="button">Pool Players</button>
-              <button class="btn btn-outline-secondary"
+              <button class="btn btn-outline-secondary <%= 'active' if @initial_live_sub == 'field' %>"
                       data-bs-toggle="tab" data-bs-target="#live-field" type="button">All Golfers</button>
             </div>
           </div>
@@ -108,7 +109,7 @@
 
         <div class="tab-content">
           <%# Pool view %>
-          <div id="live-pool" class="tab-pane show active">
+          <div id="live-pool" class="tab-pane <%= 'show active' if @initial_live_sub != 'field' %>">
             <% if @live_pool_standings.empty? %>
               <div class="alert alert-info">Live scores not yet available — check back soon.</div>
             <% else %>
@@ -236,7 +237,7 @@
           </div>
 
           <%# Field view %>
-          <div id="live-field" class="tab-pane">
+          <div id="live-field" class="tab-pane <%= 'show active' if @initial_live_sub == 'field' %>">
             <% if @live_field_standings.empty? %>
               <div class="alert alert-info">Live scores not yet available — check back soon.</div>
             <% else %>
@@ -396,6 +397,14 @@
 
       btn.addEventListener('shown.bs.tab', function() {
         allNavBtns.forEach(function(b) { if (b !== btn) b.classList.remove('active'); });
+      });
+    });
+
+    // Keep live_sub hidden input in sync with Pool/Field toggle
+    document.querySelectorAll('.pool-field-toggle [data-bs-toggle="tab"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var input = document.getElementById("refresh-live-sub");
+        if (input) input.value = btn.getAttribute('data-bs-target') === '#live-field' ? 'field' : 'pool';
       });
     });
 

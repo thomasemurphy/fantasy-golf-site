@@ -12,14 +12,14 @@ class StandingsController < ApplicationController
     last = Rails.cache.read("standings_last_refreshed")
     if last && Time.current - last < REFRESH_COOLDOWN
       remaining = (REFRESH_COOLDOWN - (Time.current - last)).ceil
-      redirect_back fallback_location: standings_path,
-                    flash: { notice: "Leaderboard was just updated. Try again in #{remaining}s." }
+      redirect_to standings_path(tab: params[:return_tab].presence || "live", live_sub: params[:live_sub].presence),
+                  flash: { notice: "Leaderboard was just updated. Try again in #{remaining}s." }
       return
     end
 
     SyncTournamentResultsJob.perform_now(tournament.id)
     Rails.cache.write("standings_last_refreshed", Time.current, expires_in: 10.minutes)
-    redirect_back fallback_location: standings_path
+    redirect_to standings_path(tab: params[:return_tab].presence || "live", live_sub: params[:live_sub].presence)
   end
 
   def index
@@ -32,6 +32,8 @@ class StandingsController < ApplicationController
     @dir  = %w[asc desc].include?(params[:dir]) ? params[:dir] : nil
 
     # Determine which tab to open on page load
+    @initial_live_sub = params[:live_sub].presence || "pool"
+
     @initial_tab = if params[:tournament_id].present?
       "t#{params[:tournament_id]}"
     elsif params[:tab].present?
