@@ -45,15 +45,52 @@ class StandingsController < ApplicationController
     end
     @initial_tab = "overall" if @initial_tab == "live" && @live_tournament.nil?
 
+    # --- Precompute shared data once (reused by compute_standings ×6, live_standings, tournament_standings) ---
+    @completed_tid                = Tournament.where(status: "completed").pluck(:id)
+    @completed_tournaments_ordered = Tournament.where(id: @completed_tid).order(:week_number).to_a
+    @standings_users              = User.where(approved: true).where.not(name: "Commissioner")
+                                        .includes(picks: [:golfer, :tournament]).to_a
+    @results_index                = TournamentResult.where(tournament_id: @completed_tid)
+                                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
+    @user_earnings_by_tab         = precompute_user_earnings
+
+    if @live_tournament
+      live_picks   = Pick.where(tournament: @live_tournament, user_id: @standings_users.map(&:id))
+                         .includes(:golfer).index_by(&:user_id)
+      live_results = TournamentResult.where(tournament: @live_tournament).index_by(&:golfer_id)
+      @live_pick_by_user_id = live_picks.transform_values do |pick|
+        result = live_results[pick.golfer_id]
+        { pick: pick, position: result&.current_position_display }
+      end
+    else
+      @live_pick_by_user_id = {}
+    end
+
+    # Precompute overall rank (used in tooltip headers across tournament/live tabs)
+    @overall_rank_by_user_id = {}
+    overall_rank = 1
+    @standings_users.sort_by { |u| [-@user_earnings_by_tab[u.id]["overall"], u.name] }
+                    .chunk_while { |a, b| @user_earnings_by_tab[a.id]["overall"] == @user_earnings_by_tab[b.id]["overall"] }
+                    .each do |group|
+                      display = group.size > 1 ? "T#{overall_rank}" : overall_rank.to_s
+                      group.each { |u| @overall_rank_by_user_id[u.id] = display }
+                      overall_rank += group.size
+                    end
+
+    # Precompute completed pick history per user (used in tooltip tables)
+    @history_picks_by_user = @standings_users.each_with_object({}) do |user, h|
+      h[user.id] = user.picks
+        .select { |p| @completed_tid.include?(p.tournament_id) }
+        .sort_by { |p| p.tournament.week_number }
+    end
+
     # All-golfers season leaderboard for the overall tab
-    completed_tids = Tournament.where(status: "completed").pluck(:id)
-    completed_tournaments_ordered = Tournament.where(id: completed_tids).order(:week_number).to_a
-    golfer_results = TournamentResult.where(tournament_id: completed_tids).includes(:golfer).to_a
+    golfer_results = TournamentResult.where(tournament_id: @completed_tid).includes(:golfer).to_a
     results_by_gt = golfer_results.index_by { |r| [r.golfer_id, r.tournament_id] }
     sorted = golfer_results
       .group_by(&:golfer_id)
       .map do |gid, rs|
-        history = completed_tournaments_ordered.map do |t|
+        history = @completed_tournaments_ordered.map do |t|
           { tournament: t, result: results_by_gt[[gid, t.id]] }
         end
         { golfer: rs.first.golfer, earnings_cents: rs.sum { |r| r.earnings_cents.to_i }, history: history }
@@ -96,41 +133,18 @@ class StandingsController < ApplicationController
     sort = (@initial_tab == tab ? @sort : nil) || "earnings"
     dir  = (@initial_tab == tab ? @dir  : nil) || "desc"
 
-    users = User.where(approved: true).where.not(name: "Commissioner")
-                .includes(picks: [:golfer, :tournament])
-
-    completed_tid = Tournament.where(status: "completed").pluck(:id)
-    results_index = TournamentResult.where(tournament_id: completed_tid)
-                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
-
-    # Live pick data for in-progress tournament tooltip
-    live_pick_by_user_id = {}
-    if @live_tournament
-      live_picks = Pick.where(tournament: @live_tournament, user_id: users.map(&:id))
-                       .includes(:golfer).index_by(&:user_id)
-      live_results = TournamentResult.where(tournament: @live_tournament).index_by(&:golfer_id)
-      live_pick_by_user_id = live_picks.transform_values do |pick|
-        result = live_results[pick.golfer_id]
-        { pick: pick, position: result&.current_position_display }
-      end
-    end
-
     # Rank is always earnings-based, independent of display sort
-    by_earnings = users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
+    by_earnings = @standings_users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
     rank = 1
     rows = by_earnings.chunk_while { |a, b| earnings_for_tab(a, tab) == earnings_for_tab(b, tab) }.flat_map do |group|
       display = group.size > 1 ? "T#{rank}" : rank.to_s
       rank += group.size
       group.map do |user|
-        completed_picks = user.picks
-                              .select { |p| p.tournament.status == "completed" }
-                              .sort_by { |p| p.tournament.week_number }
-                              .map { |p|
-                                result = results_index[[p.tournament_id, p.golfer_id]]
-                                { pick: p, position: result&.current_position_display }
-                              }
+        completed_picks = @history_picks_by_user[user.id].map { |p|
+          { pick: p, position: @results_index[[p.tournament_id, p.golfer_id]]&.current_position_display }
+        }
         total_earnings = user.picks.sum { |p| p.earnings_cents.to_i }
-        { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings, live_pick: live_pick_by_user_id[user.id] }
+        { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings, live_pick: @live_pick_by_user_id[user.id] }
       end
     end
 
@@ -161,44 +175,22 @@ class StandingsController < ApplicationController
                 .preload(:user, :golfer)
                 .to_a
 
-    # Preload pick history for tooltip
-    user_ids = picks.map { |p| p.user_id }.uniq
-    completed_tid = Tournament.where(status: "completed").pluck(:id)
-    completed_tournaments_ordered = Tournament.where(id: completed_tid).order(:week_number).to_a
-    results_index = TournamentResult.where(tournament_id: completed_tid)
-                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
-    history_picks = Pick.where(user_id: user_ids, tournament_id: completed_tid)
-                        .includes(:golfer, :tournament)
-                        .to_a
-                        .group_by(&:user_id)
-    history_by_user = history_picks.transform_values do |user_picks|
-      user_picks.sort_by { |p| p.tournament.week_number }
-                .map { |p|
-                  result = results_index[[p.tournament_id, p.golfer_id]]
-                  { pick: p, position: result&.current_position_display }
-                }
+    # Build tooltip data from preloaded shared data
+    history_by_user = @history_picks_by_user.transform_values do |user_picks|
+      user_picks.map { |p|
+        { pick: p, position: @results_index[[p.tournament_id, p.golfer_id]]&.current_position_display }
+      }
     end
-    total_earnings_by_user = history_picks.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
+    total_earnings_by_user = @history_picks_by_user.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
 
-    # Preload golfer history for golfer tooltip
     golfer_ids = picks.map(&:golfer_id).uniq
     golfer_history = golfer_ids.index_with do |gid|
-      completed_tournaments_ordered.map do |t|
-        { tournament: t, result: results_index[[t.id, gid]] }
+      @completed_tournaments_ordered.map do |t|
+        { tournament: t, result: @results_index[[t.id, gid]] }
       end
     end
 
-    # --- Compute overall rank for tooltip header ---
-    all_users = User.where(approved: true).where.not(name: "Commissioner").to_a
-    overall_rank_by_user_id = {}
-    overall_rank = 1
-    all_users.sort_by { |u| [-u.total_earnings_cents.to_i, u.name] }
-             .chunk_while { |a, b| a.total_earnings_cents.to_i == b.total_earnings_cents.to_i }
-             .each do |group|
-               display = group.size > 1 ? "T#{overall_rank}" : overall_rank.to_s
-               group.each { |u| overall_rank_by_user_id[u.id] = display }
-               overall_rank += group.size
-             end
+    overall_rank_by_user_id = @overall_rank_by_user_id
 
     # --- Compute earnings-based display rank, independent of current sort ---
     # bottom_val: 0=active, 1=CUT, 2=WD — rank is "—" for anything > 0
@@ -274,14 +266,27 @@ class StandingsController < ApplicationController
   end
 
   def earnings_for_tab(user, tab)
-    case tab
-    when "majors"       then user.majors_earnings_cents
-    when "side_events"  then user.side_events_earnings_cents
-    when "pink_events"  then user.pink_events_earnings_cents
-    when "first_half"   then user.first_half_earnings_cents
-    when "second_half"  then user.second_half_earnings_cents
-    else user.total_earnings_cents
-    end
+    @user_earnings_by_tab[user.id][tab]
+  end
+
+  # One query to replace per-user SUM calls for every tab.
+  # Returns Hash { user_id => Hash { tab_key => cents } } with default 0.
+  def precompute_user_earnings
+    type_tab = { "major" => "majors", "side_event" => "side_events", "pink_event" => "pink_events" }
+    result = Hash.new { |h, k| h[k] = Hash.new(0) }
+    Pick.joins(:tournament)
+        .where.not(earnings_cents: nil)
+        .pluck("picks.user_id", "picks.earnings_cents",
+               "tournaments.tournament_type", "tournaments.week_number")
+        .each do |uid, ec, ttype, week|
+          ec = ec.to_i
+          result[uid]["overall"] += ec
+          tab = type_tab[ttype]
+          result[uid][tab] += ec if tab
+          result[uid]["first_half"]  += ec if week && week <= 14
+          result[uid]["second_half"] += ec if week && week >= 15
+        end
+    result
   end
 
   def live_standings(tournament)
@@ -297,39 +302,20 @@ class StandingsController < ApplicationController
                 .preload(:user, :golfer)
                 .to_a
 
-    # Preload completed pick history for tooltips
-    user_ids = picks.map(&:user_id).uniq
-    completed_tid = Tournament.where(status: "completed").pluck(:id)
-    completed_tournaments_ordered = Tournament.where(id: completed_tid).order(:week_number).to_a
-    results_index = TournamentResult.where(tournament_id: completed_tid)
-                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
-    history_picks = Pick.where(user_id: user_ids, tournament_id: completed_tid)
-                        .includes(:golfer, :tournament).to_a.group_by(&:user_id)
-    history_by_user = history_picks.transform_values do |ups|
-      ups.sort_by { |p| p.tournament.week_number }
-         .map { |p| { pick: p, position: results_index[[p.tournament_id, p.golfer_id]]&.current_position_display } }
+    # Build tooltip data from preloaded shared data
+    history_by_user = @history_picks_by_user.transform_values do |ups|
+      ups.map { |p| { pick: p, position: @results_index[[p.tournament_id, p.golfer_id]]&.current_position_display } }
     end
-    total_earnings_by_user = history_picks.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
+    total_earnings_by_user = @history_picks_by_user.transform_values { |ups| ups.sum { |p| p.earnings_cents.to_i } }
 
-    # Golfer history for golfer tooltips
     golfer_ids = picks.map(&:golfer_id).uniq
     golfer_history = golfer_ids.index_with do |gid|
-      completed_tournaments_ordered.map do |t|
-        { tournament: t, result: results_index[[t.id, gid]] }
+      @completed_tournaments_ordered.map do |t|
+        { tournament: t, result: @results_index[[t.id, gid]] }
       end
     end
 
-    # Overall rank for tooltip header
-    all_users = User.where(approved: true).where.not(name: "Commissioner").to_a
-    overall_rank_by_user_id = {}
-    overall_rank = 1
-    all_users.sort_by { |u| [-u.total_earnings_cents.to_i, u.name] }
-             .chunk_while { |a, b| a.total_earnings_cents.to_i == b.total_earnings_cents.to_i }
-             .each do |group|
-               display = group.size > 1 ? "T#{overall_rank}" : overall_rank.to_s
-               group.each { |u| overall_rank_by_user_id[u.id] = display }
-               overall_rank += group.size
-             end
+    overall_rank_by_user_id = @overall_rank_by_user_id
 
     # 0=started, 1=not_started_tournament (R1 only), 2=CUT, 3=WD, 4=auto
     # Round 2+ players who haven't teed off are still tier 0 — they've already played R1.
