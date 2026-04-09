@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   resources :picks, only: %i[index create destroy]
   resources :standings, only: [:index]
   post "standings/refresh", to: "standings#refresh", as: :refresh_standings
+  get  "standings/tab",     to: "standings#tab",     as: :tab_standings
 
   namespace :admin do
     root "users#index"

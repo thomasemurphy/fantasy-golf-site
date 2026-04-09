@@ -4,7 +4,9 @@
 <% scoped = @initial_tab == tid %>
 <% cur_sort = (scoped ? @sort : nil) || "earnings"; cur_dir = (scoped ? @dir : nil) || "desc" %>
 
+<% unless local_assigns[:content_only] %>
 <div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
+<% end %>
   <div class="live-standings-outer">
     <div class="d-flex align-items-center gap-3 mb-3">
       <h5 class="mb-0"><%= t.name %></h5>
@@ -175,4 +177,6 @@
       </div>
     </div><%# inner tab-content %>
   </div><%# live-standings-outer %>
+<% unless local_assigns[:content_only] %>
 </div><%# tab-pane %>
+<% end %>

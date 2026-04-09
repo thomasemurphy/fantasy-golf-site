@@ -374,19 +374,41 @@
     </div>
   </div>
 
-  <% [["majors",       @majors_standings,      "Majors"],
-      ["side_events",  @side_events_standings, "High-Purse Side Pot"],
-      ["pink_events",  @pink_events_standings, "Low-Purse Side Pot"],
-      ["first_half",   @first_half_standings,  "1st Half"],
-      ["second_half",  @second_half_standings, "2nd Half"]].each do |tid, standings, _label| %>
-    <div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
-      <%= render "season_table", standings: standings, tab_id: tid %>
-    </div>
-  <% end %>
+  <% if @live_tournament %>
+    <%# Season sub-tabs: deferred via Turbo Frame, loaded on first click %>
+    <% %w[majors side_events pink_events first_half second_half].each do |tid| %>
+      <turbo-frame id="tab-<%= tid %>"
+                   class="tab-pane fade <%= 'show active' if @initial_tab == tid %>"
+                   role="tabpanel"
+                   data-src="<%= tab_standings_path(tab: tid) %>">
+        <div class="text-center py-4 text-muted" style="font-size:0.9em">Loading...</div>
+      </turbo-frame>
+    <% end %>
 
-  <%# --- Per-tournament tabs --- %>
-  <% @tournament_data.each do |td| %>
-    <%= render "tournament_pane", td: td %>
+    <%# Per-tournament tabs: deferred via Turbo Frame %>
+    <% @completed_tournaments.reject { |t| t.status == "in_progress" }.each do |t| %>
+      <turbo-frame id="tab-t<%= t.id %>"
+                   class="tab-pane fade <%= 'show active' if @initial_tab == "t#{t.id}" %>"
+                   role="tabpanel"
+                   data-src="<%= tab_standings_path(tab: "t#{t.id}") %>">
+        <div class="text-center py-4 text-muted" style="font-size:0.9em">Loading...</div>
+      </turbo-frame>
+    <% end %>
+  <% else %>
+    <% [["majors",       @majors_standings,      "Majors"],
+        ["side_events",  @side_events_standings, "High-Purse Side Pot"],
+        ["pink_events",  @pink_events_standings, "Low-Purse Side Pot"],
+        ["first_half",   @first_half_standings,  "1st Half"],
+        ["second_half",  @second_half_standings, "2nd Half"]].each do |tid, standings, _label| %>
+      <div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
+        <%= render "season_table", standings: standings, tab_id: tid %>
+      </div>
+    <% end %>
+
+    <%# --- Per-tournament tabs --- %>
+    <% @tournament_data.each do |td| %>
+      <%= render "tournament_pane", td: td %>
+    <% end %>
   <% end %>
 
 </div><%# .tab-content %>
@@ -408,7 +430,21 @@
 
       btn.addEventListener('shown.bs.tab', function() {
         allNavBtns.forEach(function(b) { if (b !== btn) b.classList.remove('active'); });
+
+        // Trigger lazy load for deferred turbo-frame tabs on first click
+        var pane = outerTabContent.querySelector(btn.getAttribute('data-bs-target'));
+        if (pane && pane.tagName === 'TURBO-FRAME' && pane.dataset.src && !pane.getAttribute('src')) {
+          pane.src = pane.dataset.src;
+        }
       });
+    });
+
+    // Also trigger for any deferred turbo-frame tab that's active on initial page load
+    // (e.g. user bookmarked /standings?tab=majors during a live tournament)
+    outerTabContent.querySelectorAll(':scope > turbo-frame[data-src]').forEach(function(frame) {
+      if (frame.classList.contains('show') && frame.classList.contains('active') && !frame.getAttribute('src')) {
+        frame.src = frame.getAttribute('data-src');
+      }
     });
 
     // Keep live_sub hidden input in sync with Pool/Field toggle

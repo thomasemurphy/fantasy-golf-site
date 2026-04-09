@@ -26,7 +26,6 @@ class StandingsController < ApplicationController
     @live_tournament       = Tournament.find_by(status: "in_progress")
     @completed_tournaments = Tournament.where(status: %w[completed in_progress])
                                        .joins(:picks).distinct.order(:week_number)
-    @no_cut_users  = no_cut_survivors
     @last_refreshed = Rails.cache.read("standings_last_refreshed")
     @sort = params[:sort].presence
     @dir  = %w[asc desc].include?(params[:dir]) ? params[:dir] : nil
@@ -45,44 +44,7 @@ class StandingsController < ApplicationController
     end
     @initial_tab = "overall" if @initial_tab == "live" && @live_tournament.nil?
 
-    # --- Precompute shared data once (reused by compute_standings ×6, live_standings, tournament_standings) ---
-    @completed_tid                = Tournament.where(status: "completed").pluck(:id)
-    @completed_tournaments_ordered = Tournament.where(id: @completed_tid).order(:week_number).to_a
-    @standings_users              = User.where(approved: true).where.not(name: "Commissioner")
-                                        .includes(picks: [:golfer, :tournament]).to_a
-    @results_index                = TournamentResult.where(tournament_id: @completed_tid)
-                                                    .index_by { |r| [r.tournament_id, r.golfer_id] }
-    @user_earnings_by_tab         = precompute_user_earnings
-
-    if @live_tournament
-      live_picks   = Pick.where(tournament: @live_tournament, user_id: @standings_users.map(&:id))
-                         .includes(:golfer).index_by(&:user_id)
-      live_results = TournamentResult.where(tournament: @live_tournament).index_by(&:golfer_id)
-      @live_pick_by_user_id = live_picks.transform_values do |pick|
-        result = live_results[pick.golfer_id]
-        { pick: pick, position: result&.current_position_display }
-      end
-    else
-      @live_pick_by_user_id = {}
-    end
-
-    # Precompute overall rank (used in tooltip headers across tournament/live tabs)
-    @overall_rank_by_user_id = {}
-    overall_rank = 1
-    @standings_users.sort_by { |u| [-@user_earnings_by_tab[u.id]["overall"], u.name] }
-                    .chunk_while { |a, b| @user_earnings_by_tab[a.id]["overall"] == @user_earnings_by_tab[b.id]["overall"] }
-                    .each do |group|
-                      display = group.size > 1 ? "T#{overall_rank}" : overall_rank.to_s
-                      group.each { |u| @overall_rank_by_user_id[u.id] = display }
-                      overall_rank += group.size
-                    end
-
-    # Precompute completed pick history per user (used in tooltip tables)
-    @history_picks_by_user = @standings_users.each_with_object({}) do |user, h|
-      h[user.id] = user.picks
-        .select { |p| @completed_tid.include?(p.tournament_id) }
-        .sort_by { |p| p.tournament.week_number }
-    end
+    setup_standings_shared_data
 
     # All-golfers season leaderboard for the overall tab
     golfer_results = TournamentResult.where(tournament_id: @completed_tid).includes(:golfer).to_a
@@ -103,28 +65,48 @@ class StandingsController < ApplicationController
       group.map { |g| g.merge(rank: display) }
     end
 
-    # Load all standings data at once so tab switching is instant
     @pot_tournaments = {
       "majors"      => Tournament.where(tournament_type: "major").order(:week_number).to_a,
       "side_events" => Tournament.where(tournament_type: "side_event").order(:week_number).to_a,
       "pink_events" => Tournament.where(tournament_type: "pink_event").order(:week_number).to_a,
     }
 
-    @overall_standings      = compute_standings("overall")
-    @majors_standings       = compute_standings("majors")
-    @side_events_standings  = compute_standings("side_events")
-    @pink_events_standings  = compute_standings("pink_events")
-    @first_half_standings   = compute_standings("first_half")
-    @second_half_standings  = compute_standings("second_half")
+    @overall_standings = compute_standings("overall")
 
     if @live_tournament
       @live_pool_standings  = live_standings(@live_tournament)
       @live_field_standings = field_standings(@live_tournament)
-    end
+      # Remaining tabs deferred — loaded via Turbo Frames on first click
+    else
+      @majors_standings       = compute_standings("majors")
+      @side_events_standings  = compute_standings("side_events")
+      @pink_events_standings  = compute_standings("pink_events")
+      @first_half_standings   = compute_standings("first_half")
+      @second_half_standings  = compute_standings("second_half")
 
-    @tournament_data = @completed_tournaments
-      .reject { |t| t.status == "in_progress" }
-      .map    { |t| { tournament: t, pool: tournament_standings(t), field: field_standings(t) } }
+      @tournament_data = @completed_tournaments
+        .reject { |t| t.status == "in_progress" }
+        .map    { |t| { tournament: t, pool: tournament_standings(t), field: field_standings(t) } }
+    end
+  end
+
+  def tab
+    @live_tournament = Tournament.find_by(status: "in_progress")
+    @sort = params[:sort].presence
+    @dir  = %w[asc desc].include?(params[:dir]) ? params[:dir] : nil
+    tab_id = params[:tab]
+    @initial_tab = tab_id
+
+    setup_standings_shared_data
+
+    if tab_id =~ /\At(\d+)\z/
+      tournament = Tournament.find($1.to_i)
+      td = { tournament: tournament, pool: tournament_standings(tournament), field: field_standings(tournament) }
+      render partial: "tournament_tab_frame", locals: { td: td, tab_id: tab_id }
+    else
+      standings = compute_standings(tab_id)
+      render partial: "season_tab_frame", locals: { standings: standings, tab_id: tab_id }
+    end
   end
 
   private
@@ -267,6 +249,45 @@ class StandingsController < ApplicationController
 
   def earnings_for_tab(user, tab)
     @user_earnings_by_tab[user.id][tab]
+  end
+
+  def setup_standings_shared_data
+    @completed_tid                 = Tournament.where(status: "completed").pluck(:id)
+    @completed_tournaments_ordered = Tournament.where(id: @completed_tid).order(:week_number).to_a
+    @standings_users               = User.where(approved: true).where.not(name: "Commissioner")
+                                         .includes(picks: [:golfer, :tournament]).to_a
+    @results_index                 = TournamentResult.where(tournament_id: @completed_tid)
+                                                     .index_by { |r| [r.tournament_id, r.golfer_id] }
+    @user_earnings_by_tab          = precompute_user_earnings
+    @no_cut_users                  = no_cut_survivors
+
+    if @live_tournament
+      live_picks   = Pick.where(tournament: @live_tournament, user_id: @standings_users.map(&:id))
+                         .includes(:golfer).index_by(&:user_id)
+      live_results = TournamentResult.where(tournament: @live_tournament).index_by(&:golfer_id)
+      @live_pick_by_user_id = live_picks.transform_values do |pick|
+        result = live_results[pick.golfer_id]
+        { pick: pick, position: result&.current_position_display }
+      end
+    else
+      @live_pick_by_user_id = {}
+    end
+
+    @overall_rank_by_user_id = {}
+    overall_rank = 1
+    @standings_users.sort_by { |u| [-@user_earnings_by_tab[u.id]["overall"], u.name] }
+                    .chunk_while { |a, b| @user_earnings_by_tab[a.id]["overall"] == @user_earnings_by_tab[b.id]["overall"] }
+                    .each do |group|
+                      display = group.size > 1 ? "T#{overall_rank}" : overall_rank.to_s
+                      group.each { |u| @overall_rank_by_user_id[u.id] = display }
+                      overall_rank += group.size
+                    end
+
+    @history_picks_by_user = @standings_users.each_with_object({}) do |user, h|
+      h[user.id] = user.picks
+        .select { |p| @completed_tid.include?(p.tournament_id) }
+        .sort_by { |p| p.tournament.week_number }
+    end
   end
 
   # One query to replace per-user SUM calls for every tab.
