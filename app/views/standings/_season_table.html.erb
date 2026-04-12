@@ -1,5 +1,5 @@
 <% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
-<% bar_color = { "overall" => "#ffffff", "majors" => "#c0392b", "side_events" => "#198754", "pink_events" => "#e07ab8", "first_half" => "#F5D049", "second_half" => "#D46C19" }[tab_id] || "#ffffff" %>
+<% bar_color = { "overall" => nil, "majors" => "#c0392b", "side_events" => "#198754", "pink_events" => "#e07ab8", "first_half" => "#F5D049", "second_half" => "#D46C19" }[tab_id] %>
 <% dd_min = standings.map { |r| r[:user].double_downs_remaining }.min %>
 <% max_earnings = standings.map { |r| r[:earnings_cents].to_i }.max.then { |m| m > 0 ? m : 1 } %>
 <% scoped = @initial_tab == tab_id %>
@@ -84,7 +84,7 @@
               $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
               <% pct = (row[:earnings_cents].to_i * 100.0 / max_earnings).round(1) %>
               <div style="height:4px;border-radius:2px;background:#e9ecef;margin-top:3px">
-                <div style="height:100%;width:<%= pct %>%;border-radius:2px;background:<%= bar_color %>"></div>
+                <div style="height:100%;width:<%= pct %>%;border-radius:2px;<%= bar_color ? "background:#{bar_color}" : "background:var(--color-regular)" %>"></div>
               </div>
             <% else %>
               <span class="text-muted">—</span>
