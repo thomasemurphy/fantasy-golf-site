@@ -447,36 +447,35 @@
       }
     });
 
-    // Keep live_sub hidden input in sync with Pool/Field toggle
-    document.querySelectorAll('.pool-field-toggle [data-bs-toggle="tab"]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var input = document.getElementById("refresh-live-sub");
-        if (input) input.value = btn.getAttribute('data-bs-target') === '#live-field' ? 'field' : 'pool';
+    // Pool/Field toggle: use event delegation so buttons inside lazy-loaded Turbo Frames
+    // are handled even though they don't exist at turbo:load time.
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.pool-field-toggle [data-bs-toggle="tab"]');
+      if (!btn) return;
+
+      // Keep live_sub hidden input in sync
+      var input = document.getElementById("refresh-live-sub");
+      if (input) input.value = btn.getAttribute('data-bs-target') === '#live-field' ? 'field' : 'pool';
+
+      // Handle switching ourselves so we don't depend on Bootstrap finding the active pane
+      // (it can't, because these buttons are in .btn-group not .nav).
+      var target = document.querySelector(btn.getAttribute('data-bs-target'));
+      if (!target) return;
+      // Deactivate all sibling panes
+      target.parentElement.querySelectorAll(':scope > .tab-pane').forEach(function(pane) {
+        pane.classList.remove('show', 'active');
       });
+      // Activate the clicked pane
+      target.classList.add('show', 'active');
+      // Sync button states
+      var group = btn.closest('.pool-field-toggle');
+      if (group) {
+        group.querySelectorAll('[data-bs-toggle="tab"]').forEach(function(b) {
+          b.classList.toggle('active', b === btn);
+        });
+      }
     });
 
-    // Pool/Field toggle: handle switching ourselves so we don't depend on Bootstrap
-    // finding the active pane (it can't, because these buttons are in .btn-group not .nav).
-    // Our click handler runs before Bootstrap's delegated handler; by the time Bootstrap
-    // checks, the button already has 'active' so Bootstrap returns early — no conflict.
-    document.querySelectorAll('.pool-field-toggle').forEach(function(group) {
-      group.querySelectorAll('[data-bs-toggle="tab"]').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var target = document.querySelector(btn.getAttribute('data-bs-target'));
-          if (!target) return;
-          // Deactivate all sibling panes
-          target.parentElement.querySelectorAll(':scope > .tab-pane').forEach(function(pane) {
-            pane.classList.remove('show', 'active');
-          });
-          // Activate the clicked pane
-          target.classList.add('show', 'active');
-          // Sync button states
-          group.querySelectorAll('[data-bs-toggle="tab"]').forEach(function(b) {
-            b.classList.toggle('active', b === btn);
-          });
-        });
-      });
-    });
   });
 </script>
 
