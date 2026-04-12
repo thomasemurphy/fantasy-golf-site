@@ -1,5 +1,5 @@
 <% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
-<% bar_color = { "overall" => "#195AD4", "majors" => "#c0392b", "side_events" => "#198754", "pink_events" => "#e07ab8", "first_half" => "#F5D049", "second_half" => "#D46C19" }[tab_id] || "#195AD4" %>
+<% bar_color = { "overall" => "#ffffff", "majors" => "#c0392b", "side_events" => "#198754", "pink_events" => "#e07ab8", "first_half" => "#F5D049", "second_half" => "#D46C19" }[tab_id] || "#ffffff" %>
 <% dd_min = standings.map { |r| r[:user].double_downs_remaining }.min %>
 <% max_earnings = standings.map { |r| r[:earnings_cents].to_i }.max.then { |m| m > 0 ? m : 1 } %>
 <% scoped = @initial_tab == tab_id %>
