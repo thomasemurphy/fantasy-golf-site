@@ -214,8 +214,8 @@
                         </td>
                         <% has_started = !(row[:round] == 1 && !(row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F")) %>
                         <td class="text-center"><%= has_started ? (row[:position_display].presence || "—") : "—" %></td>
-                        <td class="text-center"><%= has_started ? format_score(row[:score_to_par]) : "—" %></td>
-                        <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
+                        <td class="text-center"><%= (has_started && !%w[CUT WD].include?(row[:position_display])) ? format_score(row[:score_to_par]) : "—" %></td>
+                        <td class="text-center"><%= %w[CUT WD].include?(row[:position_display]) ? "—" : (row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—")) %></td>
                         <td class="text-end">
                           <% # has_started computed above %>
                           <% if row[:pick].auto_assigned? %>
