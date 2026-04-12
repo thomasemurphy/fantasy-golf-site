@@ -95,7 +95,7 @@
                   id: "refresh-btn",
                   form: { id: "refresh-form", data: { turbo: false } } do %>
               <input type="hidden" name="return_tab" id="refresh-return-tab" value="live">
-              <input type="hidden" name="live_sub" id="refresh-live-sub" value="pool">
+              <input type="hidden" name="live_sub" id="refresh-live-sub" value="<%= @initial_live_sub %>">
               ↻ Refresh
             <% end %>
             <div class="btn-group btn-group-sm pool-field-toggle" role="group">
