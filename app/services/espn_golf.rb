@@ -44,7 +44,7 @@ class EspnGolf
     # Build score → { position, tied } map for made-cut players.
     # ESPN gives sequential order values within ties; we re-derive ties from matching scores.
     made_cut_scores = competitors
-      .reject { |c| period > 2 && c["linescores"].to_a.length < 3 }
+      .reject { |c| period > 2 && real_rounds_played(c["linescores"]) < 3 }
       .map    { |c| parse_score(c["score"]) }
       .sort
 
@@ -64,7 +64,6 @@ class EspnGolf
     score_str     = c["score"] || "E"
     score_to_par  = parse_score(score_str)
     rounds        = c["linescores"] || []
-    rounds_played = rounds.length
     tee_time      = extract_tee_time(rounds.find { |r| r["period"] == period })
 
     # ESPN signals WD in two ways:
@@ -77,7 +76,9 @@ class EspnGolf
     #      Pre-round stubs use value=0.0, so checking > 0 excludes them.
     withdrawn  = rounds.any? { |r| r["displayValue"] == "-" && r["linescores"].to_a.any? } ||
                  rounds.any? { |r| r["value"].to_f > 0 && r["linescores"].nil? }
-    missed_cut = !withdrawn && period > 2 && rounds_played < 3
+    # ESPN includes a stub linescore for round 3+ for cut players (displayValue="-", value=0,
+    # no inner hole linescores). Count only rounds where the player actually played.
+    missed_cut = !withdrawn && period > 2 && real_rounds_played(rounds) < 3
 
     rank, position_display = if withdrawn
       [ nil, "WD" ]
@@ -99,6 +100,12 @@ class EspnGolf
       current_round:    period,
       made_cut:         !missed_cut && !withdrawn
     }
+  end
+
+  # Count rounds where the player actually played — excludes ESPN's post-cut stub entries
+  # which have displayValue="-", value=0.0, and no inner hole linescores.
+  def real_rounds_played(rounds)
+    (rounds || []).count { |r| r["value"].to_f > 0 || r["linescores"].to_a.any? }
   end
 
   def parse_score(str)
