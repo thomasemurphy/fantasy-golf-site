@@ -363,7 +363,10 @@ class StandingsController < ApplicationController
       when "pos"      then [t, p.current_position || 9999, p.golfer.name, p.user.name]
       when "thru"     then [t, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       when "earnings"
-        t == 0 ? [0, -effective_proj.call(p), p.golfer.name, p.user.name] : [t, p.golfer.name, p.user.name]
+        if t == 0    then [0, -effective_proj.call(p), p.golfer.name, p.user.name]
+        elsif t == 2 then [2, p.current_score_to_par || 999, p.golfer.name, p.user.name]  # CUT: ascending score
+        else              [t, p.golfer.name, p.user.name]
+        end
       else # "score"
         [t, p.current_score_to_par || 999, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       end
@@ -441,8 +444,10 @@ class StandingsController < ApplicationController
     }
     rows.sort_by! do |r|
       t = tier.call(r)
-      t == 1 ? [1, tee_time_minutes(r[:thru]), r[:golfer].name] \
-             : [t, -(r[:earnings_cents] || 0), r[:current_position] || 9999, r[:golfer].name]
+      if    t == 1 then [1, tee_time_minutes(r[:thru]), r[:golfer].name]
+      elsif t == 2 then [2, r[:score_to_par] || 999, r[:golfer].name]  # CUT: ascending score
+      else              [t, -(r[:earnings_cents] || 0), r[:current_position] || 9999, r[:golfer].name]
+      end
     end
     rows
   end
