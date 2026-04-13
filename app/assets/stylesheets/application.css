@@ -180,7 +180,7 @@
 
 /* Tournament category color coding */
 :root { --color-regular: #000000; }
-@media (prefers-color-scheme: dark) { :root { --color-regular: #ffffff; } }
+[data-bs-theme="dark"] { --color-regular: #ffffff; }
 .tab-label-regular     { color: var(--color-regular); }
 .tab-label-major       { color: #c0392b; }
 .tab-label-side-event  { color: #198754; }
