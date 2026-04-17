@@ -66,7 +66,7 @@ picks_data = [
   ["Nick Scarimbolo",       "Collin Morikawa",           false, false],
   ["Tim Cooney",            "Viktor Hovland",            false, false],
   ["Dustin Daniels",        "Xander Schauffele",         false, false],
-  ["Dylan Chambers",        "Tommy Fleetwood",           false, false],
+  ["Dylan Chambers",        "Russell Henley",             false, true],
   ["Dylan Linke",           "Ludvig Åberg",              false, false],
 ]
 
