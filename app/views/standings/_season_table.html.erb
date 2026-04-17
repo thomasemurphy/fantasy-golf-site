@@ -83,7 +83,7 @@
             <% if row[:earnings_cents] %>
               $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
               <% pct = (row[:earnings_cents].to_i * 100.0 / max_earnings).round(1) %>
-              <div style="height:4px;border-radius:2px;background:#e9ecef;margin-top:3px">
+              <div style="height:4px;border-radius:2px;background:var(--bar-track);margin-top:3px">
                 <div style="height:100%;width:<%= pct %>%;border-radius:2px;<%= bar_color ? "background:#{bar_color}" : "background:var(--color-regular)" %>"></div>
               </div>
             <% else %>

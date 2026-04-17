@@ -179,8 +179,8 @@
 }
 
 /* Tournament category color coding */
-:root { --color-regular: #000000; }
-[data-bs-theme="dark"] { --color-regular: #ffffff; }
+:root { --color-regular: #000000; --bar-track: #e9ecef; }
+[data-bs-theme="dark"] { --color-regular: #ffffff; --bar-track: #000000; }
 .tab-label-regular     { color: var(--color-regular); }
 .tab-label-major       { color: #c0392b; }
 .tab-label-side-event  { color: #198754; }
