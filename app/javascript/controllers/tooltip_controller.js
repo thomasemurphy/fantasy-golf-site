@@ -14,12 +14,11 @@ export default class extends Controller {
 
     let html = ""
     if (this.titleValue) {
-      const rankStyle  = this.hasRankHueValue  ? ` style="color:${hslColor(this.rankHueValue)}"` : ""
-      const earnsStyle = this.hasEarningsHueValue ? ` style="color:${hslColor(this.earningsHueValue)}"` : ""
+      const rankStyle = this.hasRankHueValue ? ` style="color:${hslColor(this.rankHueValue)}"` : ""
       html += `<div class="pick-tooltip-title">
         <span>${this.titleValue}</span>
         ${this.rankValue ? `<span class="pick-tooltip-rank"${rankStyle}>${this.rankValue}</span>` : ""}
-        ${this.earningsValue ? `<span class="pick-tooltip-total"${earnsStyle}>${this.earningsValue}</span>` : ""}
+        ${this.earningsValue ? `<span class="pick-tooltip-total"${rankStyle}>${this.earningsValue}</span>` : ""}
       </div>`
     }
     html += this.contentTarget.innerHTML
