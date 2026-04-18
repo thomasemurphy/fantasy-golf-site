@@ -161,7 +161,45 @@
                 <% picked_by_me = row[:picks].any? { |p| p.user == current_user } %>
                 <tr class="<%= 'highlight' if picked_by_me %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
                   <td class="text-center"><%= row[:position_display].presence || "—" %></td>
-                  <td><%= row[:golfer].name %></td>
+                  <td>
+                    <% gh = row[:golfer_history] %>
+                    <% if gh.any? { |e| e[:result] } %>
+                      <% golfer_total = gh.sum { |e| e[:result]&.earnings_cents.to_i } %>
+                      <span data-controller="tooltip"
+                            data-tooltip-title-value="<%= row[:golfer].name %>"
+                            <% if golfer_total > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((golfer_total / 100.0).to_i) %>"<% end %>>
+                        <span data-tooltip-target="trigger"
+                              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
+                              class="pick-history-name"><%= row[:golfer].name %></span>
+                        <span data-tooltip-target="content" style="display:none">
+                          <table style="border-spacing:0;line-height:1.9">
+                            <% gh.each do |entry| %>
+                              <% res = entry[:result] %>
+                              <tr<% if (tc = tournament_type_color(entry[:tournament])) %> style="color:<%= tc %>"<% end %>>
+                                <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= entry[:tournament].week_number %></td>
+                                <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(entry[:tournament].name) %></td>
+                                <% if res %>
+                                  <td style="padding-right:12px;white-space:nowrap;color:#6c757d"><%= res.current_position_display.presence || "—" %></td>
+                                  <td style="text-align:right;white-space:nowrap">
+                                    <% if res.earnings_cents.to_i > 0 %>
+                                      $<%= number_with_delimiter((res.earnings_cents / 100.0).to_i) %>
+                                    <% else %>
+                                      <span style="color:#aaa">$0</span>
+                                    <% end %>
+                                  </td>
+                                <% else %>
+                                  <td style="padding-right:12px;white-space:nowrap;color:#aaa">—</td>
+                                  <td style="text-align:right;white-space:nowrap;color:#aaa">—</td>
+                                <% end %>
+                              </tr>
+                            <% end %>
+                          </table>
+                        </span>
+                      </span>
+                    <% else %>
+                      <%= row[:golfer].name %>
+                    <% end %>
+                  </td>
                   <td class="text-center"><%= format_score(row[:score_to_par]) %></td>
                   <td class="text-end">
                     <% if row[:earnings_cents].to_i > 0 %>

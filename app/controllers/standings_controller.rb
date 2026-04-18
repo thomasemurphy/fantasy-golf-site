@@ -426,6 +426,14 @@ class StandingsController < ApplicationController
                           .includes(:user)
                           .group_by(&:golfer_id)
 
+    # Golfer history across all completed FTC events
+    golfer_ids = results.map(&:golfer_id)
+    golfer_history = golfer_ids.index_with do |gid|
+      @completed_tournaments_ordered.map do |t|
+        { tournament: t, result: @results_index[[t.id, gid]] }
+      end
+    end
+
     rows = results.map do |result|
       {
         golfer:                 result.golfer,
@@ -436,7 +444,8 @@ class StandingsController < ApplicationController
         current_position:       result.current_position,
         picks:                  picks_by_golfer[result.golfer_id] || [],
         earnings_cents:         result.earnings_cents,
-        current_earnings_cents: result.current_earnings_cents
+        current_earnings_cents: result.current_earnings_cents,
+        golfer_history:         golfer_history[result.golfer_id] || []
       }
     end
 
