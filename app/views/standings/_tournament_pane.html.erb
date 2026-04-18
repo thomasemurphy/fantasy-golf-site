@@ -59,7 +59,7 @@
                           <table style="border-spacing:0;line-height:1.9">
                             <% row[:completed_picks].each do |cp| %>
                               <% pick = cp[:pick] %>
-                              <tr>
+                              <tr<% if (tc = tournament_type_color(pick.tournament)) %> style="color:<%= tc %>"<% end %>>
                                 <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= pick.tournament.week_number %></td>
                                 <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(pick.tournament.name) %></td>
                                 <td style="padding-right:12px;white-space:nowrap">

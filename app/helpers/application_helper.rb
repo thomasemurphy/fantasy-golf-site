@@ -18,6 +18,13 @@ module ApplicationHelper
     score > 0 ? "+#{score}" : score.to_s
   end
 
+  TOURNAMENT_TYPE_COLORS = { "major" => "#c0392b", "side_event" => "#198754", "pink_event" => "#e07ab8" }.freeze
+
+  # Returns the display color for a tournament type, or nil for regular events
+  def tournament_type_color(tournament)
+    TOURNAMENT_TYPE_COLORS[tournament.tournament_type]
+  end
+
   # Returns a hue (0=red, 120=green) for rank coloring, or nil if unrankable
   def rank_hue(rank_str, total)
     return nil if rank_str.nil? || rank_str.to_s == "—" || total.to_i <= 1
