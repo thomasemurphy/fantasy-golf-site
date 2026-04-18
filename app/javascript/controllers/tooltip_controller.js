@@ -2,18 +2,24 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["trigger", "content"]
-  static values = { title: String, earnings: String, rank: String, position: String }
+  static values = { title: String, earnings: String, rank: String, position: String, rankHue: Number, earningsHue: Number }
 
   connect() {
     this.popup = document.createElement("div")
     this.popup.className = "pick-tooltip-popup"
 
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark'
+    const l = isDark ? '60%' : '42%'
+    const hslColor = (hue) => `hsl(${hue}, 65%, ${l})`
+
     let html = ""
     if (this.titleValue) {
+      const rankStyle  = this.hasRankHueValue  ? ` style="color:${hslColor(this.rankHueValue)}"` : ""
+      const earnsStyle = this.hasEarningsHueValue ? ` style="color:${hslColor(this.earningsHueValue)}"` : ""
       html += `<div class="pick-tooltip-title">
         <span>${this.titleValue}</span>
-        ${this.rankValue ? `<span class="pick-tooltip-rank">${this.rankValue}</span>` : ""}
-        ${this.earningsValue ? `<span class="pick-tooltip-total">${this.earningsValue}</span>` : ""}
+        ${this.rankValue ? `<span class="pick-tooltip-rank"${rankStyle}>${this.rankValue}</span>` : ""}
+        ${this.earningsValue ? `<span class="pick-tooltip-total"${earnsStyle}>${this.earningsValue}</span>` : ""}
       </div>`
     }
     html += this.contentTarget.innerHTML

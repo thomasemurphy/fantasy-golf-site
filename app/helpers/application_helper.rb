@@ -18,6 +18,22 @@ module ApplicationHelper
     score > 0 ? "+#{score}" : score.to_s
   end
 
+  # Returns a hue (0=red, 120=green) for rank coloring, or nil if unrankable
+  def rank_hue(rank_str, total)
+    return nil if rank_str.nil? || rank_str.to_s == "—" || total.to_i <= 1
+    n = rank_str.to_s.sub(/\AT/, "").to_i
+    return nil if n == 0
+    pct = [(n - 1).to_f / (total - 1), 1.0].min
+    ((1.0 - pct) * 120).round
+  end
+
+  # Returns a hue (0=red, 120=green) for earnings coloring, or nil if zero
+  def earnings_hue(earnings_cents, max_earnings_cents)
+    return nil if max_earnings_cents.to_i <= 0 || earnings_cents.to_i <= 0
+    pct = [earnings_cents.to_f / max_earnings_cents, 1.0].min
+    (pct * 120).round
+  end
+
   # Renders a sortable <th> link.
   # base_params: hash of query params to keep (e.g. { tab: "live" } or { tournament_id: 5 })
   # natural_dir: the "expected first click" direction for this column ("asc" or "desc")

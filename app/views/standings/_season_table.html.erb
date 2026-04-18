@@ -1,6 +1,7 @@
 <% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
 <% bar_color = { "overall" => nil, "majors" => "#c0392b", "side_events" => "#198754", "pink_events" => "#e07ab8", "first_half" => "#F5D049", "second_half" => "#D46C19" }[tab_id] %>
 <% dd_min = standings.map { |r| r[:user].double_downs_remaining }.min %>
+<% max_total_earnings = standings.map { |r| r[:total_earnings_cents].to_i }.max || 1 %>
 <% max_earnings = standings.map { |r| r[:earnings_cents].to_i }.max.then { |m| m > 0 ? m : 1 } %>
 <% scoped = @initial_tab == tab_id %>
 <% cur_sort = (scoped ? @sort : nil) || "earnings"; cur_dir = (scoped ? @dir : nil) || "desc" %>
@@ -27,10 +28,14 @@
             <% lp = row[:live_pick] %>
             <% if row[:completed_picks].any? || lp %>
               <% ttl = row[:total_earnings_cents].to_i %>
+              <% rh = rank_hue(row[:rank], standings.size) %>
+              <% eh = earnings_hue(ttl, max_total_earnings) %>
               <span data-controller="tooltip"
                     data-tooltip-title-value="<%= row[:user].name %>"
                     data-tooltip-rank-value="<%= row[:rank] %>"
-                    <% if ttl > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl / 100.0).to_i) %>"<% end %>>
+                    <% if rh %>data-tooltip-rank-hue-value="<%= rh %>"<% end %>
+                    <% if ttl > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl / 100.0).to_i) %>"<% end %>
+                    <% if eh %>data-tooltip-earnings-hue-value="<%= eh %>"<% end %>>
                 <span data-tooltip-target="trigger"
                       data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
                       class="pick-history-name"><%= row[:user].name %></span>
