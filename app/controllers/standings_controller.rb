@@ -26,6 +26,15 @@ class StandingsController < ApplicationController
     @live_tournament       = Tournament.find_by(status: "in_progress")
     @completed_tournaments = Tournament.where(status: %w[completed in_progress])
                                        .joins(:picks).distinct.order(:week_number)
+
+    if @live_tournament
+      last = Rails.cache.read("standings_last_refreshed")
+      unless last && Time.current - last < REFRESH_COOLDOWN
+        SyncTournamentResultsJob.perform_now(@live_tournament.id)
+        Rails.cache.write("standings_last_refreshed", Time.current, expires_in: 10.minutes)
+      end
+    end
+
     @last_refreshed = Rails.cache.read("standings_last_refreshed")
     @sort = params[:sort].presence
     @dir  = %w[asc desc].include?(params[:dir]) ? params[:dir] : nil
