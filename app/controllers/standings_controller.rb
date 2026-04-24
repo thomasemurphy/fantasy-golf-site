@@ -85,6 +85,7 @@ class StandingsController < ApplicationController
     if @live_tournament
       @live_pool_standings  = live_standings(@live_tournament)
       @live_field_standings = field_standings(@live_tournament)
+      @live_pairings        = @live_tournament.team_pairings.includes(:golfer_a, :golfer_b).to_a
       # Remaining tabs deferred — loaded via Turbo Frames on first click
     else
       @majors_standings       = compute_standings("majors")
@@ -95,7 +96,7 @@ class StandingsController < ApplicationController
 
       @tournament_data = @completed_tournaments
         .reject { |t| t.status == "in_progress" }
-        .map    { |t| { tournament: t, pool: tournament_standings(t), field: field_standings(t) } }
+        .map    { |t| { tournament: t, pool: tournament_standings(t), field: field_standings(t), pairings: t.team_pairings.includes(:golfer_a, :golfer_b).to_a } }
     end
   end
 
@@ -110,7 +111,7 @@ class StandingsController < ApplicationController
 
     if tab_id =~ /\At(\d+)\z/
       tournament = Tournament.find($1.to_i)
-      td = { tournament: tournament, pool: tournament_standings(tournament), field: field_standings(tournament) }
+      td = { tournament: tournament, pool: tournament_standings(tournament), field: field_standings(tournament), pairings: tournament.team_pairings.includes(:golfer_a, :golfer_b).to_a }
       render partial: "tournament_tab_frame", locals: { td: td, tab_id: tab_id }
     else
       standings = compute_standings(tab_id)

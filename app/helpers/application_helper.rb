@@ -41,6 +41,15 @@ module ApplicationHelper
     (pct * 120).round
   end
 
+  # For team events, returns "w/ [partner name]" or nil. Pass pairings (preloaded) to avoid N+1.
+  def team_partner_label(golfer, pairings)
+    return nil if pairings.blank?
+    pairing = pairings.find { |p| p.golfer_a_id == golfer.id || p.golfer_b_id == golfer.id }
+    return nil unless pairing
+    partner = pairing.golfer_a_id == golfer.id ? pairing.golfer_b : pairing.golfer_a
+    "+ #{partner.name}"
+  end
+
   # Renders a sortable <th> link.
   # base_params: hash of query params to keep (e.g. { tab: "live" } or { tournament_id: 5 })
   # natural_dir: the "expected first click" direction for this column ("asc" or "desc")

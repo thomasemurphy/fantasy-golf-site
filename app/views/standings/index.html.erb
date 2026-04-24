@@ -181,7 +181,7 @@
                                   <% if golfer_earnings > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((golfer_earnings / 100.0).to_i) %>"<% end %>>
                               <span data-tooltip-target="trigger"
                                     data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
-                                    class="pick-history-name"><%= row[:golfer].name %></span>
+                                    class="pick-history-name"><%= row[:golfer].name %></span><% if (pl = team_partner_label(row[:golfer], @live_pairings)) %> <span class="text-muted" style="font-size:0.85em">(<%= pl %>)</span><% end %>
                               <span data-tooltip-target="content" style="display:none">
                                 <table style="border-spacing:0;line-height:1.9">
                                   <% gh.each do |entry| %>
@@ -208,7 +208,7 @@
                               </span>
                             </span>
                           <% else %>
-                            <%= row[:golfer].name %>
+                            <%= row[:golfer].name %><% if (pl = team_partner_label(row[:golfer], @live_pairings)) %> <span class="text-muted" style="font-size:0.85em">(<%= pl %>)</span><% end %>
                           <% end %>
                           <% if row[:pick].is_double_down? %><span class="badge bg-warning text-dark ms-1">2x</span><% end %>
                           <% if row[:pick].auto_assigned? %><span class="badge bg-secondary ms-1">Auto</span><% end %>
@@ -269,7 +269,7 @@
                                   <% if golfer_total > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((golfer_total / 100.0).to_i) %>"<% end %>>
                               <span data-tooltip-target="trigger"
                                     data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
-                                    class="pick-history-name"><%= row[:golfer].name %></span>
+                                    class="pick-history-name"><%= row[:golfer].name %></span><% if (pl = team_partner_label(row[:golfer], @live_pairings)) %> <span class="text-muted" style="font-size:0.85em">(<%= pl %>)</span><% end %>
                               <span data-tooltip-target="content" style="display:none">
                                 <table style="border-spacing:0;line-height:1.9">
                                   <% gh.each do |entry| %>
@@ -296,7 +296,7 @@
                               </span>
                             </span>
                           <% else %>
-                            <%= row[:golfer].name %>
+                            <%= row[:golfer].name %><% if (pl = team_partner_label(row[:golfer], @live_pairings)) %> <span class="text-muted" style="font-size:0.85em">(<%= pl %>)</span><% end %>
                           <% end %>
                         </td>
                         <td class="text-center"><%= field_started ? format_score(row[:score_to_par]) : "—" %></td>
