@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_23_201544) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_24_175235) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_stat_statements"
 
   create_table "golfers", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -38,6 +39,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_201544) do
     t.index ["user_id", "golfer_id"], name: "index_picks_on_user_id_and_golfer_id", unique: true
     t.index ["user_id", "tournament_id"], name: "index_picks_on_user_id_and_tournament_id", unique: true
     t.index ["user_id"], name: "index_picks_on_user_id"
+  end
+
+  create_table "team_pairings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "espn_team_name", null: false
+    t.bigint "golfer_a_id", null: false
+    t.bigint "golfer_b_id", null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["golfer_a_id"], name: "index_team_pairings_on_golfer_a_id"
+    t.index ["golfer_b_id"], name: "index_team_pairings_on_golfer_b_id"
+    t.index ["tournament_id", "espn_team_name"], name: "index_team_pairings_on_tournament_id_and_espn_team_name", unique: true
+    t.index ["tournament_id"], name: "index_team_pairings_on_tournament_id"
   end
 
   create_table "tournament_entries", force: :cascade do |t|
@@ -72,6 +86,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_201544) do
   create_table "tournaments", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.date "end_date"
+    t.boolean "is_team_event", default: false, null: false
     t.string "name", null: false
     t.string "pgatour_id"
     t.datetime "picks_locked_at"
@@ -107,6 +122,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_201544) do
   add_foreign_key "picks", "golfers"
   add_foreign_key "picks", "tournaments"
   add_foreign_key "picks", "users"
+  add_foreign_key "team_pairings", "golfers", column: "golfer_a_id"
+  add_foreign_key "team_pairings", "golfers", column: "golfer_b_id"
+  add_foreign_key "team_pairings", "tournaments"
   add_foreign_key "tournament_entries", "golfers"
   add_foreign_key "tournament_entries", "tournaments"
   add_foreign_key "tournament_results", "golfers"

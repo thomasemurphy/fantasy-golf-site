@@ -34,19 +34,24 @@ class SyncTournamentResultsJob < ApplicationJob
     just_completed = false
     ApplicationRecord.transaction do
       players.each do |p|
-        golfer = find_or_create_golfer(p[:name])
-        next unless golfer
+        golfers_to_update = if p[:espn_team_name]
+          find_golfers_for_team(tournament, p[:espn_team_name])
+        else
+          [find_or_create_golfer(p[:name])].compact
+        end
 
-        result = TournamentResult.find_or_initialize_by(tournament: tournament, golfer: golfer)
-        result.assign_attributes(
-          current_position:         p[:rank],
-          current_position_display: p[:position_display],
-          current_score_to_par:     p[:score_to_par],
-          current_thru:             p[:thru],
-          current_round:            p[:current_round],
-          made_cut:                 p[:made_cut]
-        )
-        result.save!
+        golfers_to_update.each do |golfer|
+          result = TournamentResult.find_or_initialize_by(tournament: tournament, golfer: golfer)
+          result.assign_attributes(
+            current_position:         p[:rank],
+            current_position_display: p[:position_display],
+            current_score_to_par:     p[:score_to_par],
+            current_thru:             p[:thru],
+            current_round:            p[:current_round],
+            made_cut:                 p[:made_cut]
+          )
+          result.save!
+        end
       end
 
       # Project earnings based on current position and tournament purse.
@@ -80,6 +85,18 @@ class SyncTournamentResultsJob < ApplicationJob
   end
 
   private
+
+  def find_golfers_for_team(tournament, espn_team_name)
+    pairing = TeamPairing.find_by(tournament: tournament, espn_team_name: espn_team_name)
+    if pairing
+      pairing.golfers
+    else
+      # Fall back to last-name matching for teams not in the pairings table
+      espn_team_name.split("/").filter_map do |last_name|
+        Golfer.all.find { |g| g.name.split.last.casecmp?(last_name) }
+      end
+    end
+  end
 
   def find_or_create_golfer(espn_name)
     find_golfer(espn_name) || Golfer.create!(name: espn_name)
@@ -126,14 +143,21 @@ class SyncTournamentResultsJob < ApplicationJob
 
     results = TournamentResult.where(tournament: tournament).to_a
 
-    # Group made-cut players by numeric position to handle ties correctly.
-    # Tied players split the sum of prize money for the positions they occupy.
+    # Group made-cut entries by numeric position to handle ties correctly.
+    # For team events, both partners share the same position row — count them as
+    # one scoring unit (not two separate competitors splitting the purse).
     results.select { |r| r.made_cut? && r.current_position }
            .group_by(&:current_position)
            .each do |position, tied_results|
-             size = tied_results.size
-             total_pct = (position...position + size).sum { |p| PAYOUT_PERCENTAGES[p] || 0.0 }
-             earnings = (purse * total_pct / 100.0 / size).round
+             units = if tournament.is_team_event?
+               # Each pair of golfers at the same position counts as one team unit
+               tied_results.size / 2
+             else
+               tied_results.size
+             end
+             units = [units, 1].max
+             total_pct = (position...position + units).sum { |p| PAYOUT_PERCENTAGES[p] || 0.0 }
+             earnings = (purse * total_pct / 100.0 / units).round
              TournamentResult.where(id: tied_results.map(&:id))
                              .update_all(current_earnings_cents: earnings)
            end

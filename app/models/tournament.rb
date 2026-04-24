@@ -3,6 +3,7 @@ class Tournament < ApplicationRecord
   has_many :golfers, through: :tournament_entries
   has_many :picks, dependent: :destroy
   has_many :tournament_results, dependent: :destroy
+  has_many :team_pairings, dependent: :destroy
 
   TYPES = %w[regular major side_event pink_event].freeze
   STATUSES = %w[upcoming in_progress completed].freeze

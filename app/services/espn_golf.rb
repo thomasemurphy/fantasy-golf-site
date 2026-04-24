@@ -40,6 +40,7 @@ class EspnGolf
     period    = competition.dig("status", "period").to_i  # current round (1-4)
 
     competitors = competition["competitors"] || []
+    team_event  = competitors.any? { |c| c["type"] == "team" }
 
     # Build score → { position, tied } map for made-cut players.
     # ESPN gives sequential order values within ties; we re-derive ties from matching scores.
@@ -57,10 +58,15 @@ class EspnGolf
 
     players = competitors.map { |c| parse_competitor(c, period, completed, score_meta) }
 
-    { event_name: event["name"], completed: completed, period: period, players: players }
+    { event_name: event["name"], completed: completed, period: period,
+      team_event: team_event, players: players }
   end
 
   def parse_competitor(c, period, completed, score_meta)
+    if c["type"] == "team"
+      return parse_team_competitor(c, period, completed, score_meta)
+    end
+
     score_str     = c["score"] || "E"
     score_to_par  = parse_score(score_str)
     rounds        = c["linescores"] || []
@@ -99,6 +105,34 @@ class EspnGolf
       thru:             compute_thru(rounds, period, completed, missed_cut || withdrawn, tee_time),
       current_round:    period,
       made_cut:         !missed_cut && !withdrawn
+    }
+  end
+
+  def parse_team_competitor(c, period, completed, score_meta)
+    score_str    = c["score"] || "E"
+    score_to_par = parse_score(score_str)
+    rounds       = c["linescores"] || []
+    team_name    = c.dig("team", "displayName")
+
+    missed_cut = period > 2 && real_rounds_played(rounds) < 3
+
+    rank, position_display = if missed_cut
+      [ nil, "CUT" ]
+    else
+      meta = score_meta[score_to_par] || { pos: 999, tied: false }
+      pos  = meta[:pos]
+      [ pos, meta[:tied] ? "T#{pos}" : pos.to_s ]
+    end
+
+    {
+      espn_team_name:   team_name,
+      name:             team_name,
+      rank:             rank,
+      position_display: position_display,
+      score_to_par:     score_to_par,
+      thru:             compute_thru(rounds, period, completed, missed_cut, nil),
+      current_round:    period,
+      made_cut:         !missed_cut
     }
   end
 
