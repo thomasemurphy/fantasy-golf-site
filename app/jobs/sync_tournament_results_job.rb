@@ -157,7 +157,8 @@ class SyncTournamentResultsJob < ApplicationJob
              end
              units = [units, 1].max
              total_pct = (position...position + units).sum { |p| PAYOUT_PERCENTAGES[p] || 0.0 }
-             earnings = (purse * total_pct / 100.0 / units).round
+             team_earnings = (purse * total_pct / 100.0 / units).round
+             earnings = tournament.is_team_event? ? team_earnings / 2 : team_earnings
              TournamentResult.where(id: tied_results.map(&:id))
                              .update_all(current_earnings_cents: earnings)
            end
