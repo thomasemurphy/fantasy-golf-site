@@ -14,12 +14,12 @@ class EspnGolf
   #       { espn_id:, name:, rank:, position_display:,
   #         score_to_par:, thru:, current_round:, made_cut: }
   #   ]}
-  def current_leaderboard
+  def current_leaderboard(no_cut: false)
     data  = get("scoreboard")
     event = data["events"]&.first
     return nil unless event
 
-    parse_event(event)
+    parse_event(event, no_cut: no_cut)
   rescue Faraday::Error => e
     Rails.logger.error "[EspnGolf] Request failed: #{e.message}"
     nil
@@ -31,7 +31,7 @@ class EspnGolf
     JSON.parse(@conn.get(path).body)
   end
 
-  def parse_event(event)
+  def parse_event(event, no_cut: false)
     competition = event["competitions"]&.first
     return nil unless competition
 
@@ -45,7 +45,7 @@ class EspnGolf
     # Build score → { position, tied } map for made-cut players.
     # ESPN gives sequential order values within ties; we re-derive ties from matching scores.
     made_cut_scores = competitors
-      .reject { |c| period > 2 && real_rounds_played(c["linescores"]) < 3 }
+      .reject { |c| !no_cut && period > 2 && real_rounds_played(c["linescores"]) < 3 }
       .map    { |c| parse_score(c["score"]) }
       .sort
 
@@ -56,15 +56,15 @@ class EspnGolf
       pos += group.size
     end
 
-    players = competitors.map { |c| parse_competitor(c, period, completed, score_meta) }
+    players = competitors.map { |c| parse_competitor(c, period, completed, score_meta, no_cut: no_cut) }
 
     { event_name: event["name"], completed: completed, period: period,
       team_event: team_event, players: players }
   end
 
-  def parse_competitor(c, period, completed, score_meta)
+  def parse_competitor(c, period, completed, score_meta, no_cut: false)
     if c["type"] == "team"
-      return parse_team_competitor(c, period, completed, score_meta)
+      return parse_team_competitor(c, period, completed, score_meta, no_cut: no_cut)
     end
 
     score_str     = c["score"] || "E"
@@ -84,7 +84,7 @@ class EspnGolf
                  rounds.any? { |r| r["value"].to_f > 0 && r["linescores"].nil? }
     # ESPN includes a stub linescore for round 3+ for cut players (displayValue="-", value=0,
     # no inner hole linescores). Count only rounds where the player actually played.
-    missed_cut = !withdrawn && period > 2 && real_rounds_played(rounds) < 3
+    missed_cut = !no_cut && !withdrawn && period > 2 && real_rounds_played(rounds) < 3
 
     rank, position_display = if withdrawn
       [ nil, "WD" ]
@@ -108,13 +108,13 @@ class EspnGolf
     }
   end
 
-  def parse_team_competitor(c, period, completed, score_meta)
+  def parse_team_competitor(c, period, completed, score_meta, no_cut: false)
     score_str    = c["score"] || "E"
     score_to_par = parse_score(score_str)
     rounds       = c["linescores"] || []
     team_name    = c.dig("team", "displayName")
 
-    missed_cut = period > 2 && real_rounds_played(rounds) < 3
+    missed_cut = !no_cut && period > 2 && real_rounds_played(rounds) < 3
 
     rank, position_display = if missed_cut
       [ nil, "CUT" ]

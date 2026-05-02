@@ -15,7 +15,7 @@ class SyncTournamentResultsJob < ApplicationJob
       return
     end
 
-    data = EspnGolf.new.current_leaderboard
+    data = EspnGolf.new.current_leaderboard(no_cut: tournament.no_cut?)
 
     unless data
       Rails.logger.warn "[SyncTournamentResultsJob] No active ESPN event returned"
