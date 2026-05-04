@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_24_175235) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_160855) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -88,6 +88,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_24_175235) do
     t.date "end_date"
     t.boolean "is_team_event", default: false, null: false
     t.string "name", null: false
+    t.boolean "no_cut", default: false, null: false
     t.string "pgatour_id"
     t.datetime "picks_locked_at"
     t.bigint "purse_cents", default: 0
