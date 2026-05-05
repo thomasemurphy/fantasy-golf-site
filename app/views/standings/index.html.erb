@@ -434,19 +434,35 @@
       </turbo-frame>
     <% end %>
   <% else %>
-    <% [["majors",       @majors_standings,      "Majors"],
-        ["side_events",  @side_events_standings, "High-Purse Side Pot"],
-        ["pink_events",  @pink_events_standings, "Low-Purse Side Pot"],
-        ["first_half",   @first_half_standings,  "1st Half"],
-        ["second_half",  @second_half_standings, "2nd Half"]].each do |tid, standings, _label| %>
-      <div id="tab-<%= tid %>" class="tab-pane fade <%= 'show active' if @initial_tab == tid %>" role="tabpanel">
-        <%= render "season_table", standings: standings, tab_id: tid %>
-      </div>
+    <%# Season sub-tabs: render initial tab inline, defer all others via Turbo Frame %>
+    <% %w[majors side_events pink_events first_half second_half].each do |tid| %>
+      <% if @initial_tab == tid %>
+        <div id="tab-<%= tid %>" class="tab-pane fade show active" role="tabpanel">
+          <%= render "season_table", standings: @active_tab_standings, tab_id: tid %>
+        </div>
+      <% else %>
+        <turbo-frame id="tab-<%= tid %>"
+                     class="tab-pane fade"
+                     role="tabpanel"
+                     data-src="<%= tab_standings_path(tab: tid) %>">
+          <div class="text-center py-4 text-muted" style="font-size:0.9em">Loading...</div>
+        </turbo-frame>
+      <% end %>
     <% end %>
 
-    <%# --- Per-tournament tabs --- %>
-    <% @tournament_data.each do |td| %>
-      <%= render "tournament_pane", td: td %>
+    <%# Per-tournament tabs: render initial tab inline, defer all others via Turbo Frame %>
+    <% @completed_tournaments.reject { |t| t.status == "in_progress" }.each do |t| %>
+      <% tab_id = "t#{t.id}" %>
+      <% if @initial_tab == tab_id %>
+        <%= render "tournament_pane", td: @active_tournament_data %>
+      <% else %>
+        <turbo-frame id="tab-<%= tab_id %>"
+                     class="tab-pane fade"
+                     role="tabpanel"
+                     data-src="<%= tab_standings_path(tab: tab_id) %>">
+          <div class="text-center py-4 text-muted" style="font-size:0.9em">Loading...</div>
+        </turbo-frame>
+      <% end %>
     <% end %>
   <% end %>
 

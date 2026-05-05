@@ -88,15 +88,19 @@ class StandingsController < ApplicationController
       @live_pairings        = @live_tournament.team_pairings.includes(:golfer_a, :golfer_b).to_a
       # Remaining tabs deferred — loaded via Turbo Frames on first click
     else
-      @majors_standings       = compute_standings("majors")
-      @side_events_standings  = compute_standings("side_events")
-      @pink_events_standings  = compute_standings("pink_events")
-      @first_half_standings   = compute_standings("first_half")
-      @second_half_standings  = compute_standings("second_half")
-
-      @tournament_data = @completed_tournaments
-        .reject { |t| t.status == "in_progress" }
-        .map    { |t| { tournament: t, pool: tournament_standings(t), field: field_standings(t), pairings: t.team_pairings.includes(:golfer_a, :golfer_b).to_a } }
+      # Only compute data for the initial tab; all others load via Turbo Frames on demand.
+      if @initial_tab =~ /\At(\d+)\z/
+        t = Tournament.find($1.to_i)
+        @active_tournament_data = {
+          tournament: t,
+          pool:       tournament_standings(t),
+          field:      field_standings(t),
+          pairings:   t.team_pairings.includes(:golfer_a, :golfer_b).to_a
+        }
+      elsif %w[majors side_events pink_events first_half second_half].include?(@initial_tab)
+        @active_tab_standings = compute_standings(@initial_tab)
+      end
+      # If @initial_tab == "overall", @overall_standings is used (already computed above).
     end
   end
 

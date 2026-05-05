@@ -21,6 +21,7 @@ module FantasyGolfSite
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
+    config.middleware.use Rack::Deflater
     config.time_zone = "Eastern Time (US & Canada)"
     config.active_job.queue_adapter = :sidekiq
     # config.eager_load_paths << Rails.root.join("extras")
