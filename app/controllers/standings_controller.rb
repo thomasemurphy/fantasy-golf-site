@@ -23,6 +23,15 @@ class StandingsController < ApplicationController
   end
 
   def index
+    # Sort links inside lazy-loaded Turbo Frame tabs point back to standings_path.
+    # Forward them to the tab action so the response contains the matching <turbo-frame>.
+    if (frame_id = request.headers["Turbo-Frame"])&.start_with?("tab-")
+      tab_id = frame_id.delete_prefix("tab-")
+      # Tournament pane sort links use tournament_id= instead of tab=t{id}
+      tab_id = "t#{params[:tournament_id]}" if tab_id.blank? && params[:tournament_id].present?
+      redirect_to tab_standings_path(tab: tab_id, sort: params[:sort], dir: params[:dir]) and return
+    end
+
     @live_tournament       = Tournament.find_by(status: "in_progress")
     @completed_tournaments = Tournament.where(status: %w[completed in_progress])
                                        .joins(:picks).distinct.order(:week_number)
