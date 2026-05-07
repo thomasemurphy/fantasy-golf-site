@@ -85,15 +85,10 @@
             <% if @last_refreshed %>
               <span class="text-muted refreshed-label" style="font-size:12px" data-refreshed-at="<%= @last_refreshed.to_i %>"></span>
             <% end %>
-            <%= button_to refresh_standings_path, method: :post,
-                  class: "btn btn-sm btn-outline-success #{'disabled' if on_cooldown}",
-                  disabled: on_cooldown,
-                  id: "refresh-btn",
-                  form: { id: "refresh-form", data: { turbo: false } } do %>
-              <input type="hidden" name="return_tab" id="refresh-return-tab" value="live">
-              <input type="hidden" name="live_sub" id="refresh-live-sub" value="<%= @initial_live_sub %>">
-              ↻ Refresh
-            <% end %>
+            <a href="<%= refresh_standings_path(return_tab: 'live', live_sub: @initial_live_sub) %>"
+               class="btn btn-sm btn-outline-success<%= ' disabled' if on_cooldown %>"
+               id="refresh-btn"
+               data-turbo="false">↻ Refresh</a>
             <div class="btn-group btn-group-sm pool-field-toggle" role="group">
               <button class="btn btn-outline-secondary <%= 'active' if @initial_live_sub != 'field' %>"
                       data-bs-toggle="tab" data-bs-target="#live-pool" type="button">Pool Players</button>
@@ -508,9 +503,13 @@
       var btn = e.target.closest('.pool-field-toggle [data-bs-toggle="tab"]');
       if (!btn) return;
 
-      // Keep live_sub hidden input in sync
-      var input = document.getElementById("refresh-live-sub");
-      if (input) input.value = btn.getAttribute('data-bs-target') === '#live-field' ? 'field' : 'pool';
+      // Keep live_sub in the refresh link href in sync
+      var refreshBtn = document.getElementById("refresh-btn");
+      if (refreshBtn) {
+        var url = new URL(refreshBtn.getAttribute("href"), window.location.href);
+        url.searchParams.set("live_sub", btn.getAttribute("data-bs-target") === "#live-field" ? "field" : "pool");
+        refreshBtn.setAttribute("href", url.pathname + url.search);
+      }
 
       // Handle switching ourselves so we don't depend on Bootstrap finding the active pane
       // (it can't, because these buttons are in .btn-group not .nav).
@@ -556,7 +555,6 @@
       var btn = document.getElementById("refresh-btn");
       if (btn && elapsed >= cooldown) {
         btn.classList.remove("disabled");
-        btn.disabled = false;
       }
     }
     updateLabels();
@@ -567,13 +565,15 @@
 
 <script>
   (function() {
-    // Keep return_tab hidden input in sync with whatever tab is currently active
+    // Keep return_tab in the refresh link href in sync with the active tab
     function syncReturnTab() {
-      var input = document.getElementById("refresh-return-tab");
-      if (!input) return;
+      var btn = document.getElementById("refresh-btn");
+      if (!btn) return;
       var active = document.querySelector(".nav-tabs .nav-link.active");
       if (active && active.dataset.bsTarget) {
-        input.value = active.dataset.bsTarget.replace("#tab-", "");
+        var url = new URL(btn.getAttribute("href"), window.location.href);
+        url.searchParams.set("return_tab", active.dataset.bsTarget.replace("#tab-", ""));
+        btn.setAttribute("href", url.pathname + url.search);
       }
     }
     document.addEventListener("turbo:load", function() {
