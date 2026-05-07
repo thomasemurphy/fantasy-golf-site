@@ -49,28 +49,49 @@
 
 <%# === NAV ROW 2: per-tournament week tabs === %>
 <% if @completed_tournaments.any? || @upcoming_tournaments.any? %>
-  <ul class="nav nav-pills nav-pills-sm flex-wrap mb-4" id="weekTabs" role="tablist">
-    <% type_class = { "regular" => "tab-label-regular", "major" => "tab-label-major", "side_event" => "tab-label-side-event", "pink_event" => "tab-label-pink-event" } %>
-    <% @completed_tournaments.each do |t| %>
-      <% target = t.status == "in_progress" ? "tab-live" : "tab-t#{t.id}" %>
-      <% active  = t.status == "in_progress" ? @initial_tab == "live" : @initial_tab == "t#{t.id}" %>
-      <% name_class = type_class[t.tournament_type] %>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link nav-link-sm <%= 'active' if active %>"
-                data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab">
-          <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
-        </button>
-      </li>
-    <% end %>
-    <% @upcoming_tournaments.each do |t| %>
-      <% name_class = type_class[t.tournament_type] %>
-      <li class="nav-item" role="presentation">
-        <span class="nav-link-sm d-inline-block" style="opacity:0.38;cursor:default">
-          <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
-        </span>
-      </li>
-    <% end %>
-  </ul>
+  <% type_class = { "regular" => "tab-label-regular", "major" => "tab-label-major", "side_event" => "tab-label-side-event", "pink_event" => "tab-label-pink-event" } %>
+  <div id="week-tabs-wrapper" class="mb-4">
+    <%# Header row: toggle + (in collapsed state) either the live tab or "Tournaments" label %>
+    <div id="week-tabs-header" class="d-flex align-items-center gap-2 flex-wrap">
+      <button type="button" id="week-tabs-toggle"
+              class="btn btn-sm border-0 p-0 text-secondary"
+              style="font-size:0.82rem; line-height:1.4; background:none">
+        <span id="week-tabs-chevron">&#9654;</span><span id="week-tabs-label"> Tournaments</span>
+      </button>
+      <%# Inline live-tournament tab shown only while the list is collapsed %>
+      <% if @live_tournament %>
+        <div id="week-tab-live-inline" style="display:none">
+          <button class="nav-link nav-link-sm <%= 'active' if @initial_tab == 'live' %>"
+                  data-bs-toggle="tab" data-bs-target="#tab-live" type="button" role="tab">
+            <span class="text-danger fw-bold">&#9679;</span>
+            <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= @live_tournament.week_number %></span><%= short_tournament_name(@live_tournament.name) %>
+          </button>
+        </div>
+      <% end %>
+    </div>
+    <%# Full tab list — shown when expanded %>
+    <ul class="nav nav-pills nav-pills-sm flex-wrap mt-1" id="weekTabs" role="tablist">
+      <% @completed_tournaments.each do |t| %>
+        <% target = t.status == "in_progress" ? "tab-live" : "tab-t#{t.id}" %>
+        <% active  = t.status == "in_progress" ? @initial_tab == "live" : @initial_tab == "t#{t.id}" %>
+        <% name_class = type_class[t.tournament_type] %>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link nav-link-sm <%= 'active' if active %>"
+                  data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab">
+            <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
+          </button>
+        </li>
+      <% end %>
+      <% @upcoming_tournaments.each do |t| %>
+        <% name_class = type_class[t.tournament_type] %>
+        <li class="nav-item" role="presentation">
+          <span class="nav-link-sm d-inline-block" style="opacity:0.38;cursor:default">
+            <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
 <% end %>
 
 <%# === ALL TAB CONTENT === %>
@@ -589,6 +610,44 @@
       document.querySelectorAll(".nav-tabs .nav-link").forEach(function(tab) {
         tab.addEventListener("shown.bs.tab", syncReturnTab);
       });
+    });
+  })();
+</script>
+
+<script>
+  (function() {
+    var toggle   = document.getElementById("week-tabs-toggle");
+    var list     = document.getElementById("weekTabs");
+    var chevron  = document.getElementById("week-tabs-chevron");
+    var label    = document.getElementById("week-tabs-label");
+    var liveInline = document.getElementById("week-tab-live-inline");
+    if (!toggle || !list) return;
+
+    var hasLive = !!liveInline;
+
+    function applyState(expanded) {
+      if (expanded) {
+        list.style.display = "";
+        chevron.innerHTML = "&#9660;";  // ▼
+        label.textContent = "";
+        if (liveInline) liveInline.style.display = "none";
+      } else {
+        list.style.display = "none";
+        chevron.innerHTML = "&#9654;";  // ▶
+        label.textContent = hasLive ? "" : " Tournaments";
+        if (liveInline) liveInline.style.display = "";
+      }
+    }
+
+    var stored = localStorage.getItem("weekTabsExpanded");
+    // Default to expanded, but collapse if user has previously collapsed
+    var expanded = stored === null ? true : stored === "true";
+    applyState(expanded);
+
+    toggle.addEventListener("click", function() {
+      expanded = !expanded;
+      localStorage.setItem("weekTabsExpanded", expanded);
+      applyState(expanded);
     });
   })();
 </script>
