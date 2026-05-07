@@ -35,6 +35,7 @@ class StandingsController < ApplicationController
     @live_tournament       = Tournament.find_by(status: "in_progress")
     @completed_tournaments = Tournament.where(status: %w[completed in_progress])
                                        .joins(:picks).distinct.order(:week_number)
+    @upcoming_tournaments  = Tournament.where(status: "upcoming").order(:week_number)
 
     if @live_tournament
       last = Rails.cache.read("standings_last_refreshed")

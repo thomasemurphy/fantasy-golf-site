@@ -48,7 +48,7 @@
 </ul>
 
 <%# === NAV ROW 2: per-tournament week tabs === %>
-<% if @completed_tournaments.any? %>
+<% if @completed_tournaments.any? || @upcoming_tournaments.any? %>
   <ul class="nav nav-pills nav-pills-sm flex-wrap mb-4" id="weekTabs" role="tablist">
     <% type_class = { "regular" => "tab-label-regular", "major" => "tab-label-major", "side_event" => "tab-label-side-event", "pink_event" => "tab-label-pink-event" } %>
     <% @completed_tournaments.each do |t| %>
@@ -60,6 +60,14 @@
                 data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab">
           <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
         </button>
+      </li>
+    <% end %>
+    <% @upcoming_tournaments.each do |t| %>
+      <% name_class = type_class[t.tournament_type] %>
+      <li class="nav-item" role="presentation">
+        <span class="nav-link-sm d-inline-block" style="opacity:0.38;cursor:default">
+          <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
+        </span>
       </li>
     <% end %>
   </ul>
