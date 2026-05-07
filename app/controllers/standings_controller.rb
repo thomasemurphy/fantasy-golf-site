@@ -37,6 +37,13 @@ class StandingsController < ApplicationController
                                        .joins(:picks).distinct.order(:week_number)
     @upcoming_tournaments  = Tournament.where(status: "upcoming").order(:week_number)
 
+    completed_ids = Tournament.where(status: "completed").pluck(:id)
+    @tournament_winners = TournamentResult
+      .where(tournament_id: completed_ids, current_position: 1)
+      .includes(:golfer)
+      .group_by(&:tournament_id)
+      .transform_values { |rs| rs.map { |r| r.golfer.name }.join(" / ") }
+
     if @live_tournament
       last = Rails.cache.read("standings_last_refreshed")
       unless last && Time.current - last < REFRESH_COOLDOWN

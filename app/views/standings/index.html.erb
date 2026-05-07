@@ -61,23 +61,56 @@
     </div>
     <%# Full tab list — shown when expanded %>
     <ul class="nav nav-pills nav-pills-sm flex-wrap mt-1" id="weekTabs" role="tablist">
-      <% @completed_tournaments.each do |t| %>
-        <% target = t.status == "in_progress" ? "tab-live" : "tab-t#{t.id}" %>
-        <% active  = t.status == "in_progress" ? @initial_tab == "live" : @initial_tab == "t#{t.id}" %>
+      <% (@completed_tournaments.to_a + @upcoming_tournaments.to_a).each do |t| %>
+        <% upcoming = t.status == "upcoming" %>
+        <% target     = t.status == "in_progress" ? "tab-live" : "tab-t#{t.id}" %>
+        <% active     = t.status == "in_progress" ? @initial_tab == "live" : @initial_tab == "t#{t.id}" %>
         <% name_class = type_class[t.tournament_type] %>
+        <% short      = short_tournament_name(t.name) %>
+        <% winner     = @tournament_winners&.dig(t.id) %>
+        <% has_venue  = t.course_name.present? %>
         <li class="nav-item" role="presentation">
-          <button class="nav-link nav-link-sm <%= 'active' if active %>"
-                  data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab">
-            <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
-          </button>
-        </li>
-      <% end %>
-      <% @upcoming_tournaments.each do |t| %>
-        <% name_class = type_class[t.tournament_type] %>
-        <li class="nav-item" role="presentation">
-          <span class="nav-link-sm d-inline-block" style="opacity:0.38;cursor:default">
-            <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
-          </span>
+          <% if has_venue || winner %>
+            <span data-controller="tooltip" data-tooltip-position-value="below">
+              <% if upcoming %>
+                <span class="nav-link-sm d-inline-block" style="opacity:0.38;cursor:default"
+                      data-tooltip-target="trigger"
+                      data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+                  <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
+                </span>
+              <% else %>
+                <button class="nav-link nav-link-sm <%= 'active' if active %>"
+                        data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab"
+                        data-tooltip-target="trigger"
+                        data-action="mouseenter->tooltip#show mouseleave->tooltip#hide click->tooltip#hide">
+                  <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
+                </button>
+              <% end %>
+              <span data-tooltip-target="content" style="display:none">
+                <div style="white-space:nowrap">
+                  <% if t.course_name.present? %>
+                    <div style="font-weight:600;margin-bottom:2px"><%= t.course_name %></div>
+                    <div style="color:#aaa;margin-bottom:4px"><%= [t.city, t.state].compact.join(", ") %></div>
+                  <% end %>
+                  <% if t.purse_cents.to_i > 0 %>
+                    <div style="color:#6c757d;margin-bottom:<%= winner ? '4px' : '0' %>">Purse: $<%= number_with_delimiter((t.purse_cents / 100.0).to_i) %></div>
+                  <% end %>
+                  <% if winner %>
+                    <div style="color:#6c757d">Winner: <%= winner %></div>
+                  <% end %>
+                </div>
+              </span>
+            </span>
+          <% elsif upcoming %>
+            <span class="nav-link-sm d-inline-block" style="opacity:0.38;cursor:default">
+              <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
+            </span>
+          <% else %>
+            <button class="nav-link nav-link-sm <%= 'active' if active %>"
+                    data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab">
+              <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
+            </button>
+          <% end %>
         </li>
       <% end %>
     </ul>

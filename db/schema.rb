@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_160855) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_07_215918) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -84,6 +84,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_160855) do
   end
 
   create_table "tournaments", force: :cascade do |t|
+    t.string "city"
+    t.string "course_name"
     t.datetime "created_at", null: false
     t.date "end_date"
     t.boolean "is_team_event", default: false, null: false
@@ -94,6 +96,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_160855) do
     t.bigint "purse_cents", default: 0
     t.string "sportsdata_id"
     t.date "start_date"
+    t.string "state"
     t.string "status", default: "upcoming", null: false
     t.string "tournament_type", default: "regular", null: false
     t.datetime "updated_at", null: false
