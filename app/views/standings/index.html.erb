@@ -56,18 +56,8 @@
       <button type="button" id="week-tabs-toggle"
               class="btn btn-sm border-0 p-0 text-secondary"
               style="font-size:0.82rem; line-height:1.4; background:none">
-        <span id="week-tabs-chevron">&#9654;</span><span id="week-tabs-label"> Tournaments</span>
+        <span id="week-tabs-chevron">&#9654;</span> Tournaments
       </button>
-      <%# Inline live-tournament tab shown only while the list is collapsed %>
-      <% if @live_tournament %>
-        <div id="week-tab-live-inline" style="display:none">
-          <button class="nav-link nav-link-sm <%= 'active' if @initial_tab == 'live' %>"
-                  data-bs-toggle="tab" data-bs-target="#tab-live" type="button" role="tab">
-            <span class="text-danger fw-bold">&#9679;</span>
-            <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= @live_tournament.week_number %></span><%= short_tournament_name(@live_tournament.name) %>
-          </button>
-        </div>
-      <% end %>
     </div>
     <%# Full tab list — shown when expanded %>
     <ul class="nav nav-pills nav-pills-sm flex-wrap mt-1" id="weekTabs" role="tablist">
@@ -616,27 +606,14 @@
 
 <script>
   (function() {
-    var toggle   = document.getElementById("week-tabs-toggle");
-    var list     = document.getElementById("weekTabs");
-    var chevron  = document.getElementById("week-tabs-chevron");
-    var label    = document.getElementById("week-tabs-label");
-    var liveInline = document.getElementById("week-tab-live-inline");
+    var toggle  = document.getElementById("week-tabs-toggle");
+    var list    = document.getElementById("weekTabs");
+    var chevron = document.getElementById("week-tabs-chevron");
     if (!toggle || !list) return;
 
-    var hasLive = !!liveInline;
-
     function applyState(expanded) {
-      if (expanded) {
-        list.style.display = "";
-        chevron.innerHTML = "&#9660;";  // ▼
-        label.textContent = "";
-        if (liveInline) liveInline.style.display = "none";
-      } else {
-        list.style.display = "none";
-        chevron.innerHTML = "&#9654;";  // ▶
-        label.textContent = hasLive ? "" : " Tournaments";
-        if (liveInline) liveInline.style.display = "";
-      }
+      list.style.display = expanded ? "" : "none";
+      chevron.innerHTML = expanded ? "&#9660;" : "&#9654;";
     }
 
     var stored = localStorage.getItem("weekTabsExpanded");
