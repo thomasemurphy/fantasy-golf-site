@@ -1,8 +1,14 @@
 module ApplicationHelper
-  # Shortens a tournament name for compact display (e.g. tooltip columns)
+  TOURNAMENT_NAME_OVERRIDES = {
+    "CJ Cup Byron Nelson"  => "Byron Nelson",
+    "RBC Canadian Open"    => "Canadian Open",
+    "Genesis Scottish Open" => "Scottish Open",
+  }.freeze
+
+  # Shortens a tournament name for compact display (e.g. tooltip columns and tab labels)
   def short_tournament_name(name)
+    return TOURNAMENT_NAME_OVERRIDES[name] if TOURNAMENT_NAME_OVERRIDES.key?(name)
     n = name.dup
-    return "U.S. Open" if n == "U.S. Open"
     n.sub!(/^The\s+/, "")
     n.sub!(/\s+at\s+.+$/, "")
     n.sub!(/\s+of\s+.+$/, "")

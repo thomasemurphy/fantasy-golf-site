@@ -58,7 +58,7 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link nav-link-sm <%= 'active' if active %>"
                 data-bs-toggle="tab" data-bs-target="#<%= target %>" type="button" role="tab">
-          <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% if name_class %><span class="<%= name_class %>"><%= t.name %></span><% else %><%= t.name %><% end %>
+          <span class="text-muted fw-normal me-1" style="font-size:0.7em">Wk&nbsp;<%= t.week_number %></span><% short = short_tournament_name(t.name) %><% if name_class %><span class="<%= name_class %>"><%= short %></span><% else %><%= short %><% end %>
         </button>
       </li>
     <% end %>
