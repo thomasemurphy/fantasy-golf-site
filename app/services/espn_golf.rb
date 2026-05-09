@@ -42,34 +42,27 @@ class EspnGolf
     competitors = competition["competitors"] || []
     team_event  = competitors.any? { |c| c["type"] == "team" }
 
-    # True only once at least one player has teed off in the current round.
-    # Without this guard, the start of R3 (period flips to 3 before anyone plays)
-    # would mark every made-cut player as CUT because they all have real_rounds_played=2.
-    anyone_started_r3 = period > 2 && competitors.any? { |c| real_rounds_played(c["linescores"]) >= 3 }
-
-    # Build score → { position, tied } map for made-cut players.
-    # ESPN gives sequential order values within ties; we re-derive ties from matching scores.
-    made_cut_scores = competitors
-      .reject { |c| !no_cut && anyone_started_r3 && real_rounds_played(c["linescores"]) < 3 }
-      .map    { |c| parse_score(c["score"]) }
-      .sort
+    # Build score → { position, tied } map from all players in the feed.
+    # ESPN removes missed-cut players from the R3+ leaderboard entirely, so every
+    # competitor in the response has made the cut. No rounds-played filtering needed.
+    all_scores = competitors.map { |c| parse_score(c["score"]) }.sort
 
     score_meta = {}  # score_to_par => { pos:, tied: }
     pos = 1
-    made_cut_scores.chunk_while { |a, b| a == b }.each do |group|
+    all_scores.chunk_while { |a, b| a == b }.each do |group|
       score_meta[group.first] = { pos: pos, tied: group.size > 1 }
       pos += group.size
     end
 
-    players = competitors.map { |c| parse_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: no_cut) }
+    players = competitors.map { |c| parse_competitor(c, period, completed, score_meta, no_cut: no_cut) }
 
     { event_name: event["name"], completed: completed, period: period,
       team_event: team_event, players: players }
   end
 
-  def parse_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: false)
+  def parse_competitor(c, period, completed, score_meta, no_cut: false)
     if c["type"] == "team"
-      return parse_team_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: no_cut)
+      return parse_team_competitor(c, period, completed, score_meta, no_cut: no_cut)
     end
 
     score_str     = c["score"] || "E"
@@ -85,16 +78,14 @@ class EspnGolf
     #   2. A round entry has actual strokes (value > 0) but no inner linescores
     #      (Morikawa-style: partial score recorded but hole data stripped).
     #      Pre-round stubs use value=0.0, so checking > 0 excludes them.
-    withdrawn  = rounds.any? { |r| r["displayValue"] == "-" && r["linescores"].to_a.any? } ||
-                 rounds.any? { |r| r["value"].to_f > 0 && r["linescores"].nil? }
-    # ESPN includes a stub linescore for round 3+ for cut players (displayValue="-", value=0,
-    # no inner hole linescores). Count only rounds where the player actually played.
-    missed_cut = !no_cut && !withdrawn && anyone_started_r3 && real_rounds_played(rounds) < 3
+    withdrawn = rounds.any? { |r| r["displayValue"] == "-" && r["linescores"].to_a.any? } ||
+                rounds.any? { |r| r["value"].to_f > 0 && r["linescores"].nil? }
+
+    # ESPN removes missed-cut players from the R3+ leaderboard entirely — every player
+    # in the feed has made the cut. No rounds-played heuristic needed.
 
     rank, position_display = if withdrawn
       [ nil, "WD" ]
-    elsif missed_cut
-      [ nil, "CUT" ]
     else
       meta = score_meta[score_to_par] || { pos: 999, tied: false }
       pos  = meta[:pos]
@@ -107,44 +98,31 @@ class EspnGolf
       rank:             rank,
       position_display: position_display,
       score_to_par:     score_to_par,
-      thru:             compute_thru(rounds, period, completed, missed_cut || withdrawn, tee_time),
+      thru:             compute_thru(rounds, period, completed, withdrawn, tee_time),
       current_round:    period,
-      made_cut:         !missed_cut && !withdrawn
+      made_cut:         !withdrawn
     }
   end
 
-  def parse_team_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: false)
+  def parse_team_competitor(c, period, completed, score_meta, no_cut: false)
     score_str    = c["score"] || "E"
     score_to_par = parse_score(score_str)
     rounds       = c["linescores"] || []
     team_name    = c.dig("team", "displayName")
 
-    missed_cut = !no_cut && anyone_started_r3 && real_rounds_played(rounds) < 3
-
-    rank, position_display = if missed_cut
-      [ nil, "CUT" ]
-    else
-      meta = score_meta[score_to_par] || { pos: 999, tied: false }
-      pos  = meta[:pos]
-      [ pos, meta[:tied] ? "T#{pos}" : pos.to_s ]
-    end
+    meta = score_meta[score_to_par] || { pos: 999, tied: false }
+    pos  = meta[:pos]
 
     {
       espn_team_name:   team_name,
       name:             team_name,
-      rank:             rank,
-      position_display: position_display,
+      rank:             pos,
+      position_display: meta[:tied] ? "T#{pos}" : pos.to_s,
       score_to_par:     score_to_par,
-      thru:             compute_thru(rounds, period, completed, missed_cut, nil),
+      thru:             compute_thru(rounds, period, completed, false, nil),
       current_round:    period,
-      made_cut:         !missed_cut
+      made_cut:         true
     }
-  end
-
-  # Count rounds where the player actually played — excludes ESPN's post-cut stub entries
-  # which have displayValue="-", value=0.0, and no inner hole linescores.
-  def real_rounds_played(rounds)
-    (rounds || []).count { |r| r["value"].to_f > 0 || r["linescores"].to_a.any? }
   end
 
   def parse_score(str)
