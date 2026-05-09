@@ -42,10 +42,15 @@ class EspnGolf
     competitors = competition["competitors"] || []
     team_event  = competitors.any? { |c| c["type"] == "team" }
 
+    # True only once at least one player has teed off in the current round.
+    # Without this guard, the start of R3 (period flips to 3 before anyone plays)
+    # would mark every made-cut player as CUT because they all have real_rounds_played=2.
+    anyone_started_r3 = period > 2 && competitors.any? { |c| real_rounds_played(c["linescores"]) >= 3 }
+
     # Build score → { position, tied } map for made-cut players.
     # ESPN gives sequential order values within ties; we re-derive ties from matching scores.
     made_cut_scores = competitors
-      .reject { |c| !no_cut && period > 2 && real_rounds_played(c["linescores"]) < 3 }
+      .reject { |c| !no_cut && anyone_started_r3 && real_rounds_played(c["linescores"]) < 3 }
       .map    { |c| parse_score(c["score"]) }
       .sort
 
@@ -56,15 +61,15 @@ class EspnGolf
       pos += group.size
     end
 
-    players = competitors.map { |c| parse_competitor(c, period, completed, score_meta, no_cut: no_cut) }
+    players = competitors.map { |c| parse_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: no_cut) }
 
     { event_name: event["name"], completed: completed, period: period,
       team_event: team_event, players: players }
   end
 
-  def parse_competitor(c, period, completed, score_meta, no_cut: false)
+  def parse_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: false)
     if c["type"] == "team"
-      return parse_team_competitor(c, period, completed, score_meta, no_cut: no_cut)
+      return parse_team_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: no_cut)
     end
 
     score_str     = c["score"] || "E"
@@ -84,7 +89,7 @@ class EspnGolf
                  rounds.any? { |r| r["value"].to_f > 0 && r["linescores"].nil? }
     # ESPN includes a stub linescore for round 3+ for cut players (displayValue="-", value=0,
     # no inner hole linescores). Count only rounds where the player actually played.
-    missed_cut = !no_cut && !withdrawn && period > 2 && real_rounds_played(rounds) < 3
+    missed_cut = !no_cut && !withdrawn && anyone_started_r3 && real_rounds_played(rounds) < 3
 
     rank, position_display = if withdrawn
       [ nil, "WD" ]
@@ -108,13 +113,13 @@ class EspnGolf
     }
   end
 
-  def parse_team_competitor(c, period, completed, score_meta, no_cut: false)
+  def parse_team_competitor(c, period, completed, score_meta, anyone_started_r3, no_cut: false)
     score_str    = c["score"] || "E"
     score_to_par = parse_score(score_str)
     rounds       = c["linescores"] || []
     team_name    = c.dig("team", "displayName")
 
-    missed_cut = !no_cut && period > 2 && real_rounds_played(rounds) < 3
+    missed_cut = !no_cut && anyone_started_r3 && real_rounds_played(rounds) < 3
 
     rank, position_display = if missed_cut
       [ nil, "CUT" ]
