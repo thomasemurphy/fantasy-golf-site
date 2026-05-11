@@ -538,6 +538,15 @@
         if (pane && pane.tagName === 'TURBO-FRAME' && pane.dataset.src && !pane.getAttribute('src')) {
           pane.src = pane.dataset.src;
         }
+
+        // Update URL so a page refresh returns to this tab
+        var tabId = (btn.getAttribute('data-bs-target') || '').replace(/^#tab-/, '');
+        if (tabId) {
+          var url = new URL(window.location.href);
+          url.searchParams.set('tab', tabId);
+          url.searchParams.delete('tournament_id');
+          history.replaceState({}, '', url.pathname + url.search);
+        }
       });
     });
 
@@ -557,10 +566,19 @@
 
       // Keep live_sub in the refresh link href in sync
       var refreshBtn = document.getElementById("refresh-btn");
+      var liveTarget = btn.getAttribute("data-bs-target") || "";
+      var liveSub = liveTarget === "#live-field" ? "field" : "pool";
       if (refreshBtn) {
         var url = new URL(refreshBtn.getAttribute("href"), window.location.href);
-        url.searchParams.set("live_sub", btn.getAttribute("data-bs-target") === "#live-field" ? "field" : "pool");
+        url.searchParams.set("live_sub", liveSub);
         refreshBtn.setAttribute("href", url.pathname + url.search);
+      }
+
+      // Update URL so a page refresh returns to this pool/field sub-tab
+      if (liveTarget.startsWith("#live-")) {
+        var pageUrl = new URL(window.location.href);
+        pageUrl.searchParams.set("live_sub", liveSub);
+        history.replaceState({}, '', pageUrl.pathname + pageUrl.search);
       }
 
       // Handle switching ourselves so we don't depend on Bootstrap finding the active pane
