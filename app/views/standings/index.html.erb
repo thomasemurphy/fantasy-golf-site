@@ -545,6 +545,8 @@
           var url = new URL(window.location.href);
           url.searchParams.set('tab', tabId);
           url.searchParams.delete('tournament_id');
+          // Clear field_view when leaving a tournament tab
+          if (!tabId.match(/^t\d+$/)) url.searchParams.delete('field_view');
           history.replaceState({}, '', url.pathname + url.search);
         }
       });
@@ -558,9 +560,36 @@
       }
     });
 
-    // Pool/Field toggle: use event delegation so buttons inside lazy-loaded Turbo Frames
-    // are handled even though they don't exist at turbo:load time.
-    document.addEventListener('click', function(e) {
+    // Restore All Golfers sub-tab when field_view=1 is in the URL
+    restoreFieldView();
+  });
+
+  // Also restore after a Turbo Frame finishes loading (lazy-loaded tournament tab)
+  document.addEventListener('turbo:frame-load', function(e) {
+    if (/^tab-t\d+$/.test(e.target.id)) restoreFieldView();
+  });
+
+  function restoreFieldView() {
+    if (new URLSearchParams(window.location.search).get('field_view') !== '1') return;
+    var outerTabContent = document.querySelector('div.tab-content');
+    if (!outerTabContent) return;
+    var activeTourneyPane = outerTabContent.querySelector(':scope > .show.active[id^="tab-t"]');
+    if (!activeTourneyPane) return;
+    var poolBtn  = activeTourneyPane.querySelector('.pool-field-toggle [data-bs-target$="-pool"]');
+    var fieldBtn = activeTourneyPane.querySelector('.pool-field-toggle [data-bs-target$="-field"]');
+    if (!fieldBtn) return;
+    var poolPane  = poolBtn  ? activeTourneyPane.querySelector(poolBtn.getAttribute('data-bs-target'))  : null;
+    var fieldPane = activeTourneyPane.querySelector(fieldBtn.getAttribute('data-bs-target'));
+    if (!fieldPane) return;
+    if (poolPane)  { poolPane.classList.remove('show', 'active');  }
+    if (poolBtn)   { poolBtn.classList.remove('active');           }
+    fieldPane.classList.add('show', 'active');
+    fieldBtn.classList.add('active');
+  }
+
+  // Pool/Field toggle: use event delegation so buttons inside lazy-loaded Turbo Frames
+  // are handled even though they don't exist at turbo:load time.
+  document.addEventListener('click', function(e) {
       var btn = e.target.closest('.pool-field-toggle [data-bs-toggle="tab"]');
       if (!btn) return;
 
@@ -581,6 +610,17 @@
         history.replaceState({}, '', pageUrl.pathname + pageUrl.search);
       }
 
+      // Track All Golfers / Pool Players within completed tournament tabs
+      if (liveTarget.match(/^#t\d+-/)) {
+        var pageUrl2 = new URL(window.location.href);
+        if (liveTarget.endsWith("-field")) {
+          pageUrl2.searchParams.set("field_view", "1");
+        } else {
+          pageUrl2.searchParams.delete("field_view");
+        }
+        history.replaceState({}, '', pageUrl2.pathname + pageUrl2.search);
+      }
+
       // Handle switching ourselves so we don't depend on Bootstrap finding the active pane
       // (it can't, because these buttons are in .btn-group not .nav).
       var target = document.querySelector(btn.getAttribute('data-bs-target'));
@@ -598,8 +638,6 @@
           b.classList.toggle('active', b === btn);
         });
       }
-    });
-
   });
 </script>
 
