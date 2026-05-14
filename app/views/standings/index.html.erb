@@ -123,7 +123,7 @@
   <%# --- Live tab --- %>
   <% if @live_tournament %>
     <% live_base = { tab: "live" } %>
-    <% cur_sort  = (@initial_tab == "live" ? @sort : nil) || "earnings"; cur_dir = (@initial_tab == "live" ? @dir : nil) || "desc" %>
+    <% cur_sort  = (@initial_tab == "live" ? @sort : nil) || "score"; cur_dir = (@initial_tab == "live" ? @dir : nil) || "asc" %>
     <% on_cooldown = @last_refreshed && Time.current - @last_refreshed < StandingsController::REFRESH_COOLDOWN %>
 
     <div id="tab-live" class="tab-pane fade <%= 'show active' if @initial_tab == 'live' %>" role="tabpanel">

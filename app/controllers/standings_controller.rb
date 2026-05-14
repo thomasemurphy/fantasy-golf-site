@@ -342,8 +342,8 @@ class StandingsController < ApplicationController
   end
 
   def live_standings(tournament)
-    sort = (@initial_tab == "live" ? @sort : nil) || "earnings"
-    dir  = (@initial_tab == "live" ? @dir  : nil) || "desc"
+    sort = (@initial_tab == "live" ? @sort : nil) || "score"
+    dir  = (@initial_tab == "live" ? @dir  : nil) || "asc"
 
     picks = Pick.where(tournament: tournament)
                 .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id AND tournament_results.golfer_id = picks.golfer_id")
