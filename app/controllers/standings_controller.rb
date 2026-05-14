@@ -342,8 +342,8 @@ class StandingsController < ApplicationController
   end
 
   def live_standings(tournament)
-    sort = (@initial_tab == "live" ? @sort : nil) || "score"
-    dir  = (@initial_tab == "live" ? @dir  : nil) || "asc"
+    sort = (@initial_tab == "live" ? @sort : nil) || "earnings"
+    dir  = (@initial_tab == "live" ? @dir  : nil) || "desc"
 
     picks = Pick.where(tournament: tournament)
                 .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id AND tournament_results.golfer_id = picks.golfer_id")
@@ -394,7 +394,7 @@ class StandingsController < ApplicationController
       when "pos"      then [t, p.current_position || 9999, p.golfer.name, p.user.name]
       when "thru"     then [t, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       when "earnings"
-        if t == 0    then [0, -effective_proj.call(p), p.golfer.name, p.user.name]
+        if t == 0    then [0, -effective_proj.call(p), p.current_score_to_par || 999, p.golfer.name, p.user.name]
         elsif t == 2 then [2, p.current_score_to_par || 999, p.golfer.name, p.user.name]  # CUT: ascending score
         else              [t, p.golfer.name, p.user.name]
         end
