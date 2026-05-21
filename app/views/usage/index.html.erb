@@ -1,0 +1,150 @@
+<div class="d-flex align-items-baseline gap-3 mb-2 flex-wrap">
+  <h4 class="mb-0">Golfer Usage</h4>
+</div>
+
+<div class="usage-legend mb-2">
+  <span class="usage-key"><span class="dot"></span> picked</span>
+  <span class="usage-key"><span class="badge bg-warning text-dark dd-badge">2x</span> double-down</span>
+  <span class="usage-key"><span class="dot dot-open"></span> auto-assigned</span>
+</div>
+
+<div class="usage-wrap">
+  <table class="usage-table">
+    <thead>
+      <tr>
+        <th class="corner"></th>
+        <% @golfers.each do |g| %>
+          <th class="golfer-h">
+            <div><%= g.name %> <span class="g-count">(<%= @pick_count_by_golfer[g.id] %>)</span></div>
+          </th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% @players.each do |player| %>
+        <tr class="<%= 'me' if player == current_user %>">
+          <th class="player-c"><span class="urank"><%= @overall_rank[player.id] %></span><%= player.name %></th>
+          <% @golfers.each do |g| %>
+            <% pick = @pick_by_cell[[player.id, g.id]] %>
+            <% if pick %>
+              <td class="cell">
+                <span data-controller="tooltip" data-tooltip-title-value="<%= player.name %>">
+                  <span data-tooltip-target="trigger" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><% if pick.is_double_down? %><span class="badge bg-warning text-dark dd-badge">2x</span><% elsif pick.auto_assigned? %><span class="dot dot-open"></span><% else %><span class="dot"></span><% end %></span>
+                  <span data-tooltip-target="content" style="display:none"><div class="ut-body"><div><%= pick.golfer.name %></div><div class="ut-sub">Wk <%= pick.tournament.week_number %> — <%= short_tournament_name(pick.tournament.name) %></div><% if pick.is_double_down? %><div class="ut-dd">2x</div><% end %><% if pick.auto_assigned? %><div class="ut-auto">auto</div><% end %><% if pick.earnings_cents && pick.earnings_cents > 0 %><div class="pick-tooltip-total">$<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %></div><% elsif pick.earnings_cents %><div class="ut-sub">$0</div><% else %><div class="ut-sub">&mdash;</div><% end %></div></span>
+                </span>
+              </td>
+            <% else %>
+              <td class="cell"></td>
+            <% end %>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .usage-legend { display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:0.8rem; }
+  .usage-key { display:inline-flex; align-items:center; gap:5px; }
+
+  .usage-table .dot {
+    display:inline-block; width:9px; height:9px; border-radius:50%;
+    background: var(--bs-body-color); vertical-align: middle;
+  }
+  .usage-table .dot-open {
+    background: transparent;
+    border: 1.5px solid var(--bs-secondary-color);
+  }
+  .usage-legend .dot {
+    display:inline-block; width:9px; height:9px; border-radius:50%;
+    background: var(--bs-body-color); vertical-align: middle;
+  }
+  .usage-legend .dot-open { background: transparent; border: 1.5px solid var(--bs-secondary-color); }
+  .dd-badge { font-size:9px; font-weight:700; line-height:1; padding:1px 3px; vertical-align: middle; }
+
+  /* Cell tooltip content lines (popup is rendered into <body> by the shared tooltip controller) */
+  .pick-tooltip-popup .ut-body { line-height: 1.7; }
+  .pick-tooltip-popup .ut-sub  { color: #6c757d; }
+  .pick-tooltip-popup .ut-dd   { color: #b8860b; font-weight: 600; }
+  .pick-tooltip-popup .ut-auto { color: #6c757d; font-style: italic; }
+
+  .usage-wrap {
+    overflow: auto;
+    max-height: 82vh;
+    border: 1px solid var(--bs-border-color);
+    border-top: none;
+    border-left: none;
+  }
+  .usage-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+    --cell: 26px;
+    cursor: default;
+  }
+  .usage-table th, .usage-table td {
+    border-right: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+  .usage-table thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--bs-body-bg);
+    vertical-align: bottom;
+    padding: 0;
+  }
+  .usage-table .golfer-h {
+    height: 192px;
+    width: var(--cell);
+    min-width: var(--cell);
+    padding: 0;
+    background: var(--bs-secondary-bg);
+    border-top: 1px solid var(--bs-border-color);
+  }
+  .usage-table .golfer-h > div {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    padding: 6px 0;
+    line-height: var(--cell);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .usage-table .g-count { color: var(--bs-secondary-color); font-weight: 400; }
+  .usage-table .player-c {
+    position: sticky; left: 0; z-index: 1;
+    background: var(--bs-secondary-bg);
+    border-left: 1px solid var(--bs-border-color);
+    text-align: left;
+    white-space: nowrap;
+    padding: 3px 10px;
+    font-weight: 500;
+    min-width: 160px;
+  }
+  .usage-table .player-c .urank {
+    display: inline-block;
+    min-width: 22px;
+    margin-right: 8px;
+    text-align: right;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    font-size: 11px;
+  }
+  .usage-table thead .corner {
+    left: 0; z-index: 3;
+    background: var(--bs-body-bg);
+    padding: 0;
+  }
+  .usage-table td.cell {
+    width: var(--cell); min-width: var(--cell);
+    text-align: center;
+  }
+  .usage-table tbody tr:hover .player-c,
+  .usage-table tbody tr:hover td.cell {
+    background: color-mix(in srgb, var(--bs-secondary-bg) 88%, var(--bs-emphasis-color));
+  }
+  [data-bs-theme="dark"] .usage-table tbody tr:hover .player-c,
+  [data-bs-theme="dark"] .usage-table tbody tr:hover td.cell {
+    background: color-mix(in srgb, var(--bs-secondary-bg) 72%, var(--bs-emphasis-color));
+  }
+  .usage-table tr.me .player-c { color: var(--bs-primary); font-weight: 700; }
+</style>

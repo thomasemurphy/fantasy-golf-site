@@ -7,6 +7,7 @@ Rails.application.routes.draw do
 
   resources :picks, only: %i[index create destroy]
   resources :standings, only: [:index]
+  get "usage", to: "usage#index", as: :usage
   get  "standings/refresh", to: "standings#refresh", as: :refresh_standings
   get  "standings/tab",     to: "standings#tab",     as: :tab_standings
 

@@ -32,6 +32,9 @@
             <li class="nav-item">
               <%= link_to "Standings", standings_path, class: "nav-link #{'active nav-link-active' if controller_name == 'standings'}" %>
             </li>
+            <li class="nav-item">
+              <%= link_to "Usage", usage_path, class: "nav-link #{'active nav-link-active' if controller_name == 'usage'}" %>
+            </li>
             <% if current_user&.admin? %>
               <li class="nav-item">
                 <%= link_to "Admin", admin_root_path, class: "nav-link #{'active nav-link-active' if controller_name.start_with?('admin')}" %>
