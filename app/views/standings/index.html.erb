@@ -71,7 +71,7 @@
         <% has_venue  = t.course_name.present? %>
         <li class="nav-item" role="presentation">
           <% if has_venue || winner %>
-            <span data-controller="tooltip" data-tooltip-position-value="below">
+            <span data-controller="tooltip" data-tooltip-position-value="below" data-tooltip-title-value="<%= t.name %>">
               <% if upcoming %>
                 <span class="nav-link-sm d-inline-block" style="opacity:0.38;cursor:default"
                       data-tooltip-target="trigger"
@@ -89,7 +89,7 @@
               <span data-tooltip-target="content" style="display:none">
                 <div style="white-space:nowrap">
                   <% if t.course_name.present? %>
-                    <div style="font-weight:600;margin-bottom:2px"><%= t.course_name %></div>
+                    <div style="margin-bottom:2px"><%= t.course_name %></div>
                     <div style="color:#aaa;margin-bottom:4px"><%= [t.city, t.state].compact.join(", ") %></div>
                   <% end %>
                   <% if t.purse_cents.to_i > 0 %>
@@ -190,9 +190,11 @@
                                     class="pick-history-name"><%= row[:user].name %></span>
                               <span data-tooltip-target="content" style="display:none">
                                 <table style="border-spacing:0;line-height:1.9">
+                                  <% prev_wk = nil %>
                                   <% row[:completed_picks].each do |cp| %>
                                     <% pick = cp[:pick] %>
-                                    <tr<% if (tc = tournament_type_color(pick.tournament)) %> style="color:<%= tc %>"<% end %>>
+                                    <% wk = pick.tournament.week_number; split = prev_wk && prev_wk <= 13 && wk >= 14; prev_wk = wk %>
+                                    <tr<%= ' class="ph-split"'.html_safe if split %><% if (tc = tournament_type_color(pick.tournament)) %> style="color:<%= tc %>"<% end %>>
                                       <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= pick.tournament.week_number %></td>
                                       <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(pick.tournament.name) %></td>
                                       <td style="padding-right:12px;white-space:nowrap">

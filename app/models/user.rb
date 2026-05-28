@@ -35,14 +35,14 @@ class User < ApplicationRecord
 
   def first_half_earnings_cents
     picks.joins(:tournament)
-         .where(tournaments: { week_number: 1..14 })
+         .where(tournaments: { week_number: 1..13 })
          .where.not(earnings_cents: nil)
          .sum(:earnings_cents)
   end
 
   def second_half_earnings_cents
     picks.joins(:tournament)
-         .where(tournaments: { week_number: 15..27 })
+         .where(tournaments: { week_number: 14..27 })
          .where.not(earnings_cents: nil)
          .sum(:earnings_cents)
   end

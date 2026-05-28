@@ -1,5 +1,7 @@
 <% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
 <% bar_color = { "overall" => nil, "majors" => "#c0392b", "side_events" => "#198754", "pink_events" => "#e07ab8", "first_half" => "#F5D049", "second_half" => "#D46C19" }[tab_id] %>
+<% pot_top_n  = { "overall" => 5, "majors" => 3, "side_events" => 3, "pink_events" => 1, "first_half" => 1, "second_half" => 1 }[tab_id] %>
+<% pot_tint   = bar_color || "var(--color-regular)" %>
 <% dd_min = standings.map { |r| r[:user].double_downs_remaining }.min %>
 <% max_total_earnings = standings.map { |r| r[:total_earnings_cents].to_i }.max || 1 %>
 <% max_earnings = standings.map { |r| r[:earnings_cents].to_i }.max.then { |m| m > 0 ? m : 1 } %>
@@ -22,7 +24,9 @@
     </thead>
     <tbody>
       <% standings.each do |row| %>
-        <tr class="<%= 'highlight' if row[:user] == current_user %>">
+        <% rank_num = row[:rank].to_s.sub("T", "").to_i %>
+        <% in_money = pot_top_n && rank_num.positive? && rank_num <= pot_top_n %>
+        <tr class="<%= 'highlight' if row[:user] == current_user %>"<%= " style=\"background: color-mix(in srgb, #{pot_tint} 18%, transparent)\"".html_safe if in_money %>>
           <td><span class="standings-rank"><%= row[:rank] %></span></td>
           <td>
             <% lp = row[:live_pick] %>
@@ -41,9 +45,11 @@
                       class="pick-history-name"><%= row[:user].name %></span>
                 <span data-tooltip-target="content" style="display:none">
                   <table style="border-spacing:0;line-height:1.9">
+                    <% prev_wk = nil %>
                     <% row[:completed_picks].each do |cp| %>
                       <% pick = cp[:pick] %>
-                      <tr<% if (tc = tournament_type_color(pick.tournament)) %> style="color:<%= tc %>"<% end %>>
+                      <% wk = pick.tournament.week_number; split = prev_wk && prev_wk <= 13 && wk >= 14; prev_wk = wk %>
+                      <tr<%= ' class="ph-split"'.html_safe if split %><% if (tc = tournament_type_color(pick.tournament)) %> style="color:<%= tc %>"<% end %>>
                         <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= pick.tournament.week_number %></td>
                         <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(pick.tournament.name) %></td>
                         <td style="padding-right:12px;white-space:nowrap">

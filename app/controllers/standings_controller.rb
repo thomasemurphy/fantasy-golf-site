@@ -335,8 +335,8 @@ class StandingsController < ApplicationController
           result[uid]["overall"] += ec
           tab = type_tab[ttype]
           result[uid][tab] += ec if tab
-          result[uid]["first_half"]  += ec if week && week <= 14
-          result[uid]["second_half"] += ec if week && week >= 15
+          result[uid]["first_half"]  += ec if week && week <= 13
+          result[uid]["second_half"] += ec if week && week >= 14
         end
     result
   end

@@ -263,6 +263,15 @@ tr.status-completed   { color: #6c757d; }
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Horizontal split between weeks 13 and 14 in pick-history tooltips */
+.pick-tooltip-popup tr.ph-split > td {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding-top: 3px;
+}
+[data-bs-theme="dark"] .pick-tooltip-popup tr.ph-split > td {
+  border-top-color: rgba(255, 255, 255, 0.15);
+}
+
 /* Active nav link — slightly larger and bolder */
 .navbar .nav-link-active {
   font-size: 1.05rem;

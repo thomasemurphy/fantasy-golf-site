@@ -19,8 +19,8 @@ class Tournament < ApplicationRecord
   scope :majors, -> { where(tournament_type: "major") }
   scope :side_events, -> { where(tournament_type: "side_event") }
   scope :pink_events, -> { where(tournament_type: "pink_event") }
-  scope :first_half, -> { where(week_number: 1..14) }
-  scope :second_half, -> { where(week_number: 15..27) }
+  scope :first_half, -> { where(week_number: 1..13) }
+  scope :second_half, -> { where(week_number: 14..27) }
 
   def picks_locked?
     picks_locked_at.present? && Time.current >= picks_locked_at
