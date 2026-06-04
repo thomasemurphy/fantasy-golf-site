@@ -163,6 +163,7 @@
                     <tr>
                       <th>Rank</th>
                       <th><%= sort_header("Player",         "player",   live_base, cur_sort, cur_dir) %></th>
+                      <th style="text-align:left;padding-left:4px;padding-right:32px"><%= sort_header("Earnings", "season", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
                       <th><%= sort_header("Golfer",         "golfer",   live_base, cur_sort, cur_dir) %></th>
                       <th class="text-center"><%= sort_header("Pos",    "pos",      live_base, cur_sort, cur_dir) %></th>
                       <th class="text-center"><%= sort_header("Score",  "score",    live_base, cur_sort, cur_dir) %></th>
@@ -219,6 +220,13 @@
                             </span>
                           <% else %>
                             <%= row[:user].name %>
+                          <% end %>
+                        </td>
+                        <td class="tabular-nums" style="text-align:left;padding-left:4px;padding-right:32px">
+                          <% if row[:total_earnings_cents].to_i > 0 %>
+                            $<%= number_with_delimiter((row[:total_earnings_cents] / 100.0).to_i) %>
+                          <% else %>
+                            <span class="text-muted">$0</span>
                           <% end %>
                         </td>
                         <td>

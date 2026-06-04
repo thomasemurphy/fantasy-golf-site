@@ -386,6 +386,7 @@ class StandingsController < ApplicationController
     dd_val         = ->(p) { p.is_double_down? ? 0 : 1 }
 
     picks.sort_by! do |p|
+      next [-total_earnings_by_user[p.user_id].to_i, p.user.name] if sort == "season"
       t = tier.call(p)
       next [1, tee_time_minutes(p.current_thru), p.golfer.name, p.user.name] if t == 1
       case sort
@@ -403,6 +404,7 @@ class StandingsController < ApplicationController
       end
     end
     picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
+    picks.reverse! if sort == "season" && dir == "asc"
 
     # Tie-aware rank: only started (tier 0) players receive a numeric rank
     by_earnings = picks.sort_by { |p| [tier.call(p), -effective_proj.call(p), p.golfer.name, p.user.name] }
