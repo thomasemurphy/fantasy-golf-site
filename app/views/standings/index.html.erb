@@ -163,9 +163,10 @@
                     <tr>
                       <th>Rank</th>
                       <th><%= sort_header("Player",         "player",   live_base, cur_sort, cur_dir) %></th>
-                      <th style="text-align:left;padding-left:4px;padding-right:32px"><%= sort_header("Earnings", "season", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
-                      <th><%= sort_header("Golfer",         "golfer",   live_base, cur_sort, cur_dir) %></th>
-                      <th class="text-center"><%= sort_header("Pos",    "pos",      live_base, cur_sort, cur_dir) %></th>
+                      <th class="text-center">Pos</th>
+                      <th style="text-align:right;padding-left:4px;padding-right:8px"><%= sort_header("Earnings", "season", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                      <th style="padding-left:48px;padding-right:0"><%= sort_header("Golfer",         "golfer",   live_base, cur_sort, cur_dir) %></th>
+                      <th class="text-center" style="padding-left:0"><%= sort_header("Pos",    "pos",      live_base, cur_sort, cur_dir) %></th>
                       <th class="text-center"><%= sort_header("Score",  "score",    live_base, cur_sort, cur_dir) %></th>
                       <th class="text-center"><%= sort_header("Thru",   "thru",     live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
                       <th class="text-end"><%= sort_header("Proj. Earnings", "earnings", live_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
@@ -222,14 +223,15 @@
                             <%= row[:user].name %>
                           <% end %>
                         </td>
-                        <td class="tabular-nums" style="text-align:left;padding-left:4px;padding-right:32px">
+                        <td class="text-center tabular-nums"><%= row[:overall_rank] %></td>
+                        <td class="tabular-nums" style="text-align:right;padding-left:4px;padding-right:8px">
                           <% if row[:total_earnings_cents].to_i > 0 %>
-                            $<%= number_with_delimiter((row[:total_earnings_cents] / 100.0).to_i) %>
+                            <%= abbreviated_earnings(row[:total_earnings_cents]) %>
                           <% else %>
-                            <span class="text-muted">$0</span>
+                            <span class="text-muted">$0.0m</span>
                           <% end %>
                         </td>
-                        <td>
+                        <td style="padding-left:48px;padding-right:0">
                           <% gh = row[:golfer_history] %>
                           <% if gh.any? { |e| e[:result] } %>
                             <% golfer_earnings = gh.sum { |e| e[:result]&.earnings_cents.to_i } %>
@@ -271,7 +273,7 @@
                           <% if row[:pick].auto_assigned? %><span class="badge bg-secondary ms-1">Auto</span><% end %>
                         </td>
                         <% has_started = !(row[:round] == 1 && !(row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F")) %>
-                        <td class="text-center"><%= has_started ? (row[:position_display].presence || "—") : "—" %></td>
+                        <td class="text-center" style="padding-left:0"><%= has_started ? (row[:position_display].presence || "—") : "—" %></td>
                         <td class="text-center"><%= (has_started && !%w[CUT WD].include?(row[:position_display])) ? format_score(row[:score_to_par]) : "—" %></td>
                         <td class="text-center"><%= %w[CUT WD].include?(row[:position_display]) ? "—" : (row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—")) %></td>
                         <td class="text-end">

@@ -40,6 +40,13 @@ module ApplicationHelper
     ((1.0 - pct) * 120).round
   end
 
+  # Abbreviates an earnings amount (in cents) to millions, always one decimal:
+  # $10,123,456 → "$10.1m", $10,000,000 → "$10.0m", $250,000 → "$0.3m"
+  def abbreviated_earnings(earnings_cents)
+    millions = earnings_cents.to_i / 100.0 / 1_000_000.0
+    "$#{number_with_precision(millions, precision: 1)}m"
+  end
+
   # Returns a hue (0=red, 120=green) for earnings coloring, or nil if zero
   def earnings_hue(earnings_cents, max_earnings_cents)
     return nil if max_earnings_cents.to_i <= 0 || earnings_cents.to_i <= 0

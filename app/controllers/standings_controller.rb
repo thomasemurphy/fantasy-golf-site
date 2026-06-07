@@ -395,7 +395,7 @@ class StandingsController < ApplicationController
       when "pos"      then [t, p.current_position || 9999, p.golfer.name, p.user.name]
       when "thru"     then [t, thru_sort_val(p.current_thru), p.golfer.name, p.user.name]
       when "earnings"
-        if t == 0    then [0, -effective_proj.call(p), p.current_score_to_par || 999, p.golfer.name, p.user.name]
+        if t == 0    then [0, -effective_proj.call(p), p.golfer.name, -total_earnings_by_user[p.user_id].to_i, p.user.name]
         elsif t == 2 then [2, p.current_score_to_par || 999, p.golfer.name, p.user.name]  # CUT: ascending score
         else              [t, p.golfer.name, p.user.name]
         end
