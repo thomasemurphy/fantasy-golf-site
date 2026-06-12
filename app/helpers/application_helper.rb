@@ -17,6 +17,19 @@ module ApplicationHelper
     n.strip
   end
 
+  # Formats a tournament's calendar dates, e.g. "Jun 11-14" or "May 29-Jun 1".
+  def tournament_date_range(tournament)
+    s = tournament.start_date
+    return nil unless s
+    e = tournament.end_date || s
+    return s.strftime("%b %-d") if s == e
+    if s.year == e.year && s.month == e.month
+      "#{s.strftime("%b %-d")}-#{e.strftime("%-d")}"
+    else
+      "#{s.strftime("%b %-d")}-#{e.strftime("%b %-d")}"
+    end
+  end
+
   # Formats a score-to-par integer for display: nil → "—", 0 → "E", -8 → "-8", 2 → "+2"
   def format_score(score)
     return content_tag(:span, "—", class: "text-muted") if score.nil?

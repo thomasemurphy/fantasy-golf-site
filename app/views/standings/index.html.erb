@@ -92,6 +92,9 @@
                     <div style="margin-bottom:2px"><%= t.course_name %></div>
                     <div style="color:#aaa;margin-bottom:4px"><%= [t.city, t.state].compact.join(", ") %></div>
                   <% end %>
+                  <% if (date_range = tournament_date_range(t)) %>
+                    <div style="color:#6c757d;margin-bottom:<%= (t.purse_cents.to_i > 0 || winner) ? '4px' : '0' %>"><%= date_range %></div>
+                  <% end %>
                   <% if t.purse_cents.to_i > 0 %>
                     <div style="color:#6c757d;margin-bottom:<%= winner ? '4px' : '0' %>">Purse: $<%= number_with_delimiter((t.purse_cents / 100.0).to_i) %></div>
                   <% end %>
