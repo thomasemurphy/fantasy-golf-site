@@ -301,6 +301,8 @@
             <% if @live_field_standings.empty? %>
               <div class="alert alert-info">Live scores not yet available — check back soon.</div>
             <% else %>
+              <% live_pool_max_total   = @live_pool_standings.map { |r| r[:total_earnings_cents].to_i }.max || 1 %>
+              <% live_pool_row_by_user = @live_pool_standings.index_by { |r| r[:user].id } %>
               <div class="standings-table-wrapper" style="width:100%">
                 <table class="standings-table">
                   <thead>
@@ -371,7 +373,8 @@
                         </td>
                         <td class="text-muted" style="font-size:0.875em">
                           <% row[:picks].each_with_index do |pick, i| %>
-                            <%= pick.user.name %><% if pick.is_double_down? %>&nbsp;<span class="badge bg-warning text-dark">2x</span><% end %><%= i < row[:picks].size - 1 ? ", " : "" %>
+                            <% pool_row = live_pool_row_by_user[pick.user_id] %>
+                            <% if pool_row %><%= render "standings/player_tooltip", row: pool_row, pool_max_total: live_pool_max_total, pool_size: @live_pool_standings.size %><% else %><%= pick.user.name %><% end %><% if pick.is_double_down? %>&nbsp;<span class="badge bg-warning text-dark">2x</span><% end %><%= i < row[:picks].size - 1 ? ", " : "" %>
                           <% end %>
                         </td>
                       </tr>
