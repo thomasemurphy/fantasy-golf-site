@@ -29,66 +29,8 @@
         <tr class="<%= 'highlight' if row[:user] == current_user %>"<%= " style=\"background: color-mix(in srgb, #{pot_tint} 18%, transparent)\"".html_safe if in_money %>>
           <td><span class="standings-rank"><%= row[:rank] %></span></td>
           <td>
-            <% lp = row[:live_pick] %>
-            <% if row[:completed_picks].any? || lp %>
-              <% ttl = row[:total_earnings_cents].to_i %>
-              <% rh = rank_hue(row[:rank], standings.size) %>
-              <% eh = earnings_hue(ttl, max_total_earnings) %>
-              <span data-controller="tooltip"
-                    data-tooltip-title-value="<%= row[:user].name %>"
-                    data-tooltip-rank-value="<%= row[:rank] %>"
-                    <% if rh %>data-tooltip-rank-hue-value="<%= rh %>"<% end %>
-                    <% if ttl > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((ttl / 100.0).to_i) %>"<% end %>
-                    <% if eh %>data-tooltip-earnings-hue-value="<%= eh %>"<% end %>>
-                <span data-tooltip-target="trigger"
-                      data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
-                      class="pick-history-name"><%= row[:user].name %></span>
-                <span data-tooltip-target="content" style="display:none">
-                  <table style="border-spacing:0;line-height:1.9">
-                    <% prev_wk = nil %>
-                    <% row[:completed_picks].each do |cp| %>
-                      <% pick = cp[:pick] %>
-                      <% wk = pick.tournament.week_number; split = prev_wk && prev_wk <= 13 && wk >= 14; prev_wk = wk %>
-                      <tr<%= ' class="ph-split"'.html_safe if split %><% if (tc = tournament_type_color(pick.tournament)) %> style="color:<%= tc %>"<% end %>>
-                        <td style="color:#aaa;padding-right:10px;white-space:nowrap">Wk<%= pick.tournament.week_number %></td>
-                        <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(pick.tournament.name) %></td>
-                        <td style="padding-right:12px;white-space:nowrap">
-                          <%= pick.golfer.name %>
-                          <% if pick.is_double_down? %><span style="color:#b8860b;font-size:10px;font-weight:600">2x</span><% end %>
-                          <% if pick.auto_assigned? %><span style="color:#aaa;font-size:10px">(auto)</span><% end %>
-                        </td>
-                        <td style="padding-right:12px;white-space:nowrap;color:#6c757d"><%= cp[:position] || "—" %></td>
-                        <td style="text-align:right;white-space:nowrap">
-                          <% if pick.auto_assigned? %>
-                            <span style="color:#aaa">$0</span>
-                          <% elsif pick.earnings_cents.to_i > 0 %>
-                            $<%= number_with_delimiter((pick.earnings_cents / 100.0).to_i) %>
-                          <% else %>
-                            <span style="color:#aaa">$0</span>
-                          <% end %>
-                        </td>
-                      </tr>
-                    <% end %>
-                    <% if lp %>
-                      <% lp_pick = lp[:pick] %>
-                      <tr style="color:#5b8dd9;font-style:italic">
-                        <td style="color:#7aaae8;padding-right:10px;white-space:nowrap">Wk<%= lp_pick.tournament.week_number %></td>
-                        <td style="padding-right:12px;white-space:nowrap"><%= short_tournament_name(lp_pick.tournament.name) %></td>
-                        <td style="padding-right:12px;white-space:nowrap">
-                          <%= lp_pick.golfer.name %>
-                          <% if lp_pick.is_double_down? %><span style="color:#b8a830;font-size:10px;font-weight:600;font-style:normal">2x</span><% end %>
-                          <% if lp_pick.auto_assigned? %><span style="color:#7aaae8;font-size:10px">(auto)</span><% end %>
-                        </td>
-                        <td style="padding-right:12px;white-space:nowrap"><%= lp[:position] || "—" %></td>
-                        <td style="text-align:right;white-space:nowrap">live</td>
-                      </tr>
-                    <% end %>
-                  </table>
-                </span>
-              </span>
-            <% else %>
-              <%= row[:user].name %>
-            <% end %>
+            <%= render "standings/player_tooltip", row: row, pool_max_total: max_total_earnings,
+                       pool_size: standings.size, rank: row[:rank], live_pick: row[:live_pick] %>
           </td>
           <td class="text-end tabular-nums">
             <% if row[:earnings_cents] %>

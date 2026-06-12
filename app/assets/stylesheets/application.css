@@ -219,6 +219,7 @@ tr.status-completed   { color: #6c757d; }
   padding: 12px 16px;
   font-size: 13px;
   pointer-events: none;
+  cursor: default;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease;
@@ -263,12 +264,39 @@ tr.status-completed   { color: #6c757d; }
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Horizontal split between weeks 13 and 14 in pick-history tooltips */
-.pick-tooltip-popup tr.ph-split > td {
+/* Collapsible first-half weeks in pick-history tooltips.
+   The first-half rows stay hidden until the "Show more" toggle (or any row in the
+   group) is hovered. The popup is made hoverable by the tooltip controller. */
+.pick-tooltip-popup tr.ph-hidden {
+  display: none;
+}
+.pick-tooltip-popup tbody.ph-expand:hover tr.ph-hidden {
+  display: table-row;
+}
+.pick-tooltip-popup .ph-more-row > td {
+  color: #6c757d;
+  font-size: 11px;
+  padding-bottom: 3px;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  cursor: default;
+}
+.pick-tooltip-popup tbody.ph-expand:hover .ph-more-row > td {
+  color: #495057;
+}
+[data-bs-theme="dark"] .pick-tooltip-popup .ph-more-row > td {
+  color: #9aa0a6;
+}
+[data-bs-theme="dark"] .pick-tooltip-popup tbody.ph-expand:hover .ph-more-row > td {
+  color: #c8ccd1;
+}
+/* Divider between the collapsible first half and the always-visible second half */
+.pick-tooltip-popup tbody.ph-expand + tbody.ph-second > tr:first-child > td {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
   padding-top: 3px;
 }
-[data-bs-theme="dark"] .pick-tooltip-popup tr.ph-split > td {
+[data-bs-theme="dark"] .pick-tooltip-popup tbody.ph-expand + tbody.ph-second > tr:first-child > td {
   border-top-color: rgba(255, 255, 255, 0.15);
 }
 

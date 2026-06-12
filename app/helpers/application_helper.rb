@@ -54,6 +54,36 @@ module ApplicationHelper
     (pct * 120).round
   end
 
+  # Renders one <tr> for a player's pick-history tooltip. cp is a { pick:, position: } hash.
+  # hidden: true tags the row with .ph-hidden so it collapses until "Show more" is hovered.
+  def pick_history_tooltip_row(cp, hidden: false)
+    pick = cp[:pick]
+    t    = pick.tournament
+    tc   = tournament_type_color(t)
+
+    wk_td   = content_tag(:td, "Wk#{t.week_number}", style: "color:#aaa;padding-right:10px;white-space:nowrap")
+    name_td = content_tag(:td, short_tournament_name(t.name), style: "padding-right:12px;white-space:nowrap")
+
+    golfer_parts = [pick.golfer.name]
+    golfer_parts << content_tag(:span, "2x", style: "color:#b8860b;font-size:10px;font-weight:600") if pick.is_double_down?
+    golfer_parts << content_tag(:span, "(auto)", style: "color:#aaa;font-size:10px") if pick.auto_assigned?
+    golfer_td = content_tag(:td, safe_join(golfer_parts, " "), style: "padding-right:12px;white-space:nowrap")
+
+    pos_td = content_tag(:td, cp[:position] || "—", style: "padding-right:12px;white-space:nowrap;color:#6c757d")
+
+    earn_html =
+      if pick.auto_assigned? || pick.earnings_cents.to_i <= 0
+        content_tag(:span, "$0", style: "color:#aaa")
+      else
+        "$#{number_with_delimiter((pick.earnings_cents / 100.0).to_i)}"
+      end
+    earn_td = content_tag(:td, earn_html, style: "text-align:right;white-space:nowrap")
+
+    content_tag(:tr, safe_join([wk_td, name_td, golfer_td, pos_td, earn_td]),
+                class: ("ph-hidden" if hidden),
+                style: ("color:#{tc}" if tc))
+  end
+
   # For team events, returns "w/ [partner name]" or nil. Pass pairings (preloaded) to avoid N+1.
   def team_partner_label(golfer, pairings)
     return nil if pairings.blank?

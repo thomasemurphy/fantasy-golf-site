@@ -24,13 +24,24 @@ export default class extends Controller {
     html += this.contentTarget.innerHTML
     this.popup.innerHTML = html
     document.body.appendChild(this.popup)
+
+    // A popup with a collapsible "Show more" section must be hoverable so the
+    // user can reach the toggle. Keep it open while the cursor is over it.
+    this.interactive = !!this.popup.querySelector(".ph-expand")
+    if (this.interactive) {
+      this.popup.style.pointerEvents = "auto"
+      this.popup.addEventListener("mouseenter", () => this.cancelHide())
+      this.popup.addEventListener("mouseleave", () => this.scheduleHide())
+    }
   }
 
   disconnect() {
+    this.cancelHide()
     this.popup.remove()
   }
 
   show() {
+    this.cancelHide()
     const rect = this.triggerTarget.getBoundingClientRect()
     const below = this.positionValue === "below"
     this.popup.style.top = below
@@ -43,6 +54,28 @@ export default class extends Controller {
   }
 
   hide() {
+    // Interactive popups delay hiding so the cursor can travel from the name
+    // into the popup without it disappearing.
+    if (this.interactive) {
+      this.scheduleHide()
+    } else {
+      this.doHide()
+    }
+  }
+
+  scheduleHide() {
+    this.cancelHide()
+    this.hideTimer = setTimeout(() => this.doHide(), 200)
+  }
+
+  cancelHide() {
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer)
+      this.hideTimer = null
+    }
+  }
+
+  doHide() {
     this.popup.style.transitionDelay = "0s"
     this.popup.style.opacity = "0"
     this.popup.style.visibility = "hidden"
