@@ -232,9 +232,9 @@
                           <% if row[:pick].auto_assigned? %><span class="badge bg-secondary ms-1">Auto</span><% end %>
                         </td>
                         <% has_started = !(row[:round] == 1 && !(row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F")) %>
-                        <td class="text-center" style="padding-left:0"><%= has_started ? (row[:position_display].presence || "—") : "—" %></td>
-                        <td class="text-center"><%= (has_started && !%w[CUT WD].include?(row[:position_display])) ? format_score(row[:score_to_par]) : "—" %></td>
-                        <td class="text-center"><%= %w[CUT WD].include?(row[:position_display]) ? "—" : (row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—")) %></td>
+                        <td class="text-center" style="padding-left:0"><%= (has_started && row[:position_display] != "CUT") ? (row[:position_display].presence || "—") : "—" %></td>
+                        <td class="text-center"><%= (has_started && row[:position_display] != "WD") ? format_score(row[:score_to_par]) : "—" %></td>
+                        <td class="text-center"><%= row[:position_display] == "CUT" ? "CUT" : (row[:position_display] == "WD" ? "—" : (row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—"))) %></td>
                         <td class="text-end">
                           <% # has_started computed above %>
                           <% if row[:pick].auto_assigned? %>
@@ -279,7 +279,7 @@
                       <% picked_by_me = row[:picks].any? { |p| p.user == current_user } %>
                       <% field_started = !(row[:round] == 1 && !(row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F")) %>
                       <tr class="<%= 'highlight' if picked_by_me %><%= ' cut-row' if row[:position_display] == 'CUT' %>">
-                        <td class="text-center"><%= field_started ? (row[:position_display].presence || "—") : "—" %></td>
+                        <td class="text-center"><%= (field_started && row[:position_display] != "CUT") ? (row[:position_display].presence || "—") : "—" %></td>
                         <td>
                           <% gh = row[:golfer_history] %>
                           <% if gh.any? { |e| e[:result] } %>
@@ -320,7 +320,7 @@
                           <% end %>
                         </td>
                         <td class="text-center"><%= field_started ? format_score(row[:score_to_par]) : "—" %></td>
-                        <td class="text-center"><%= row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—") %></td>
+                        <td class="text-center"><%= row[:position_display] == "CUT" ? "CUT" : (row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—")) %></td>
                         <td class="text-end">
                           <% if !field_started || row[:position_display].in?(%w[CUT WD]) %>
                             <span class="text-muted">—</span>
