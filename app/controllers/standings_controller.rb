@@ -501,14 +501,12 @@ class StandingsController < ApplicationController
     rows
   end
 
-  # Convert a tee time string like "10:30a ET" or "1:45p ET" to minutes since midnight.
-  # Returns 9999 for nil or unparseable strings (sorts last within not-started tier).
+  # Sort key for a tee-time value (stored as "@<utc-iso>"). Returns epoch seconds
+  # so earlier tee times sort first; a large sentinel for nil/unparseable values
+  # (sorts last within the not-started tier).
   def tee_time_minutes(thru)
-    return 9999 unless thru =~ /\A(\d+):(\d+)(a|p)/i
-    h, m, ampm = $1.to_i, $2.to_i, $3.downcase
-    h += 12 if ampm == "p" && h != 12
-    h -= 12 if ampm == "a" && h == 12
-    h * 60 + m
+    t = Time.iso8601(thru[1..]) rescue nil if thru.is_a?(String) && thru.start_with?("@")
+    t ? t.to_i : 9_999_999_999
   end
 
   def thru_sort_val(thru)

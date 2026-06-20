@@ -37,6 +37,22 @@ module ApplicationHelper
     score > 0 ? "+#{score}" : score.to_s
   end
 
+  # Renders the live-leaderboard "Thru" cell. Values: "F" (round complete), a
+  # hole count, nil (not on the tee sheet), or a tee time stored as "@<utc-iso>".
+  # Tee times render as a <time> element with an Eastern-time fallback; the
+  # tee-time Stimulus controller localizes it to the viewer's own timezone.
+  def live_thru_cell(thru, round)
+    return "—" if thru.blank?
+    return "F#{round}" if thru == "F"
+    return thru unless thru.start_with?("@")
+
+    t = Time.iso8601(thru[1..]) rescue nil
+    return thru unless t
+    fallback = t.in_time_zone("Eastern Time (US & Canada)")
+    text = fallback.strftime("%-l:%M%p").downcase.sub("pm", "p").sub("am", "a") + " ET"
+    tag.time(text, datetime: t.utc.iso8601, data: { controller: "tee-time" })
+  end
+
   TOURNAMENT_TYPE_COLORS = { "major" => "#c0392b", "side_event" => "#198754", "pink_event" => "#e07ab8" }.freeze
 
   # Returns the display color for a tournament type, or nil for regular events

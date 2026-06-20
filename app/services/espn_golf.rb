@@ -201,11 +201,13 @@ class EspnGolf
     tee_stat = stats.find { |s| !s.key?("value") }
     return nil unless tee_stat
     # ESPN labels tee times with the local server timezone (e.g. "PDT") but the
-    # actual value is Eastern time. Force parse as Eastern before converting.
+    # actual value is Eastern time. Parse as Eastern, then store as a UTC ISO
+    # timestamp prefixed with "@" so the browser can localize it to the viewer's
+    # own timezone. The "@" sentinel keeps tee times distinct from the other
+    # current_thru values ("F", a hole count, or nil).
     eastern_str = tee_stat["displayValue"].sub(/\b[A-Z]{2,4}\b/, "EDT")
-    t = Time.parse(eastern_str).in_time_zone("Pacific Time (US & Canada)")
-    tz = t.zone.sub(/[DS]T/, "T")  # PDT→PT, PST→PT, EDT→ET, etc.
-    t.strftime("%-I:%M%p").downcase.sub("pm", "p").sub("am", "a") + " #{tz}"
+    t = Time.parse(eastern_str).in_time_zone("Eastern Time (US & Canada)")
+    "@#{t.utc.iso8601}"
   rescue
     nil
   end

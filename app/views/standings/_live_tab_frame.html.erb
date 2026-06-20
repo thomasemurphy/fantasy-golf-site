@@ -75,7 +75,7 @@
                         <% has_started = !(row[:round] == 1 && !(row[:thru]&.match?(/\A\d+\z/) || row[:thru] == "F")) %>
                         <td class="text-center" style="padding-left:0"><%= (has_started && row[:position_display] != "CUT") ? (row[:position_display].presence || "—") : "—" %></td>
                         <td class="text-center"><%= (has_started && row[:position_display] != "WD") ? format_score(row[:score_to_par]) : "—" %></td>
-                        <td class="text-center"><%= row[:position_display] == "CUT" ? "CUT" : (row[:position_display] == "WD" ? "—" : (row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—"))) %></td>
+                        <td class="text-center"><%= row[:position_display] == "CUT" ? "CUT" : (row[:position_display] == "WD" ? "—" : live_thru_cell(row[:thru], row[:round])) %></td>
                         <td class="text-end">
                           <% # has_started computed above %>
                           <% if row[:pick].auto_assigned? %>
@@ -125,7 +125,7 @@
                           <%= render "standings/golfer_tooltip", golfer: row[:golfer], golfer_history: row[:golfer_history], pairings: @live_pairings %>
                         </td>
                         <td class="text-center"><%= field_started ? format_score(row[:score_to_par]) : "—" %></td>
-                        <td class="text-center"><%= row[:position_display] == "CUT" ? "CUT" : (row[:thru] == "F" ? "F#{row[:round]}" : (row[:thru].presence || "—")) %></td>
+                        <td class="text-center"><%= row[:position_display] == "CUT" ? "CUT" : live_thru_cell(row[:thru], row[:round]) %></td>
                         <td class="text-end">
                           <% if !field_started || row[:position_display].in?(%w[CUT WD]) %>
                             <span class="text-muted">—</span>
