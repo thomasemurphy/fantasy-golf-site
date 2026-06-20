@@ -33,7 +33,7 @@
       <table style="border-spacing:0;line-height:1.9">
         <% if collapsed_picks.any? %>
           <tbody class="ph-expand">
-            <tr class="ph-more-row"><td colspan="5">Show more ▾</td></tr>
+            <tr class="ph-more-row"><td colspan="5"></td></tr>
             <% collapsed_picks.each do |cp| %>
               <%= pick_history_tooltip_row(cp, hidden: true) %>
             <% end %>

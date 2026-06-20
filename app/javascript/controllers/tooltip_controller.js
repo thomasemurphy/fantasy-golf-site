@@ -38,6 +38,12 @@ export default class extends Controller {
       this.popup.style.pointerEvents = "auto"
       this.popup.addEventListener("mouseenter", () => this.cancelHide())
       this.popup.addEventListener("mouseleave", () => this.scheduleHide())
+      // Unfurl the collapsed weeks on click of the "Show more"/"Show less" row.
+      this.popup.addEventListener("click", (e) => {
+        const moreRow = e.target.closest(".ph-more-row")
+        if (!moreRow) return
+        moreRow.closest("tbody.ph-expand")?.classList.toggle("ph-open")
+      })
     }
   }
 

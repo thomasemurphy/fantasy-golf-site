@@ -97,6 +97,37 @@ module ApplicationHelper
                 style: ("color:#{tc}" if tc))
   end
 
+  # Renders one <tr> for a golfer's season-results tooltip. entry is a { tournament:, result: } hash.
+  # hidden: true tags the row with .ph-hidden so it collapses until "Show more" is hovered
+  # (same mechanism as pick_history_tooltip_row).
+  def golfer_history_tooltip_row(entry, hidden: false)
+    t   = entry[:tournament]
+    res = entry[:result]
+    tc  = tournament_type_color(t)
+
+    wk_td   = content_tag(:td, "Wk#{t.week_number}", style: "color:#aaa;padding-right:10px;white-space:nowrap")
+    name_td = content_tag(:td, short_tournament_name(t.name), style: "padding-right:12px;white-space:nowrap")
+
+    if res
+      pos_td = content_tag(:td, res.current_position_display.presence || "—",
+                           style: "padding-right:12px;white-space:nowrap;color:#6c757d")
+      earn_html =
+        if res.earnings_cents.to_i > 0
+          "$#{number_with_delimiter((res.earnings_cents / 100.0).to_i)}"
+        else
+          content_tag(:span, "$0", style: "color:#aaa")
+        end
+      earn_td = content_tag(:td, earn_html, style: "text-align:right;white-space:nowrap")
+    else
+      pos_td  = content_tag(:td, "—", style: "padding-right:12px;white-space:nowrap;color:#aaa")
+      earn_td = content_tag(:td, "—", style: "text-align:right;white-space:nowrap;color:#aaa")
+    end
+
+    content_tag(:tr, safe_join([wk_td, name_td, pos_td, earn_td]),
+                class: ("ph-hidden" if hidden),
+                style: ("color:#{tc}" if tc))
+  end
+
   # For team events, returns "w/ [partner name]" or nil. Pass pairings (preloaded) to avoid N+1.
   def team_partner_label(golfer, pairings)
     return nil if pairings.blank?

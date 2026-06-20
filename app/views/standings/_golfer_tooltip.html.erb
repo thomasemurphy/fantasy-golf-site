@@ -1,0 +1,45 @@
+<%# Renders a golfer's name with a season-results tooltip (week-by-week finishes/earnings).
+    Locals: golfer, golfer_history, pairings
+
+    By default the tooltip shows only second-half tournaments (weeks 14+). First-half
+    weeks collapse behind a "Show more" toggle that unfurls on hover (same mechanism as
+    the player pick-history tooltip). %>
+<% gh = golfer_history %>
+<% if gh.any? { |e| e[:result] } %>
+  <% golfer_earnings = gh.sum { |e| e[:result]&.earnings_cents.to_i } %>
+  <% first_half  = gh.select { |e| e[:tournament].week_number <= 13 } %>
+  <% second_half = gh.select { |e| e[:tournament].week_number >= 14 } %>
+  <%# Default-visible group is the second half; collapse the first half.
+      If there is no second half yet, show the first half outright with no toggle. %>
+  <% if second_half.any? %>
+    <% visible_entries = second_half %><% collapsed_entries = first_half %>
+  <% else %>
+    <% visible_entries = first_half %><% collapsed_entries = [] %>
+  <% end %>
+  <span data-controller="tooltip"
+        data-tooltip-title-value="<%= golfer.name %>"
+        <% if golfer_earnings > 0 %>data-tooltip-earnings-value="$<%= number_with_delimiter((golfer_earnings / 100.0).to_i) %>"<% end %>>
+    <span data-tooltip-target="trigger"
+          data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"
+          class="pick-history-name"><%= golfer.name %></span><% if (pl = team_partner_label(golfer, pairings)) %> <span class="text-muted" style="font-size:0.85em">(<%= pl %>)</span><% end %>
+    <span data-tooltip-target="content" style="display:none">
+      <table style="border-spacing:0;line-height:1.9">
+        <% if collapsed_entries.any? %>
+          <tbody class="ph-expand">
+            <tr class="ph-more-row"><td colspan="4"></td></tr>
+            <% collapsed_entries.each do |entry| %>
+              <%= golfer_history_tooltip_row(entry, hidden: true) %>
+            <% end %>
+          </tbody>
+        <% end %>
+        <tbody class="ph-second">
+          <% visible_entries.each do |entry| %>
+            <%= golfer_history_tooltip_row(entry) %>
+          <% end %>
+        </tbody>
+      </table>
+    </span>
+  </span>
+<% else %>
+  <%= golfer.name %><% if (pl = team_partner_label(golfer, pairings)) %> <span class="text-muted" style="font-size:0.85em">(<%= pl %>)</span><% end %>
+<% end %>

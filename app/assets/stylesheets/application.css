@@ -265,12 +265,13 @@ tr.status-completed   { color: #6c757d; }
 }
 
 /* Collapsible first-half weeks in pick-history tooltips.
-   The first-half rows stay hidden until the "Show more" toggle (or any row in the
-   group) is hovered. The popup is made hoverable by the tooltip controller. */
+   The first-half rows stay hidden until the "Show more" toggle is clicked, which
+   adds .ph-open to the group (see tooltip_controller). The popup is made hoverable
+   by the tooltip controller so the toggle stays reachable. */
 .pick-tooltip-popup tr.ph-hidden {
   display: none;
 }
-.pick-tooltip-popup tbody.ph-expand:hover tr.ph-hidden {
+.pick-tooltip-popup tbody.ph-expand.ph-open tr.ph-hidden {
   display: table-row;
 }
 .pick-tooltip-popup .ph-more-row > td {
@@ -280,15 +281,22 @@ tr.status-completed   { color: #6c757d; }
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 2px;
-  cursor: default;
+  cursor: pointer;
 }
-.pick-tooltip-popup tbody.ph-expand:hover .ph-more-row > td {
+/* The toggle label lives in CSS so it can swap to "Show less" while the group is open. */
+.pick-tooltip-popup .ph-more-row > td::after {
+  content: "Show more ▾";
+}
+.pick-tooltip-popup .ph-more-row > td:hover {
   color: #495057;
+}
+.pick-tooltip-popup tbody.ph-expand.ph-open .ph-more-row > td::after {
+  content: "Show less ▴";
 }
 [data-bs-theme="dark"] .pick-tooltip-popup .ph-more-row > td {
   color: #9aa0a6;
 }
-[data-bs-theme="dark"] .pick-tooltip-popup tbody.ph-expand:hover .ph-more-row > td {
+[data-bs-theme="dark"] .pick-tooltip-popup .ph-more-row > td:hover {
   color: #c8ccd1;
 }
 /* Divider between the collapsible first half and the always-visible second half */
