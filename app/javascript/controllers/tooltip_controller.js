@@ -4,7 +4,13 @@ export default class extends Controller {
   static targets = ["trigger", "content"]
   static values = { title: String, earnings: String, rank: String, position: String, rankHue: Number, earningsHue: Number }
 
-  connect() {
+  // The popup is built lazily on first hover rather than in connect(). A single
+  // page can carry hundreds of these tooltips; building and appending a popup
+  // for every one on connect() (and again on every Turbo render) was the main
+  // cause of slow sorting on mobile, where the popups are never even shown.
+  buildPopup() {
+    if (this.popup) return
+
     this.popup = document.createElement("div")
     this.popup.className = "pick-tooltip-popup"
 
@@ -37,10 +43,11 @@ export default class extends Controller {
 
   disconnect() {
     this.cancelHide()
-    this.popup.remove()
+    if (this.popup) this.popup.remove()
   }
 
   show() {
+    this.buildPopup()
     this.cancelHide()
     const rect = this.triggerTarget.getBoundingClientRect()
     const below = this.positionValue === "below"
@@ -76,6 +83,7 @@ export default class extends Controller {
   }
 
   doHide() {
+    if (!this.popup) return
     this.popup.style.transitionDelay = "0s"
     this.popup.style.opacity = "0"
     this.popup.style.visibility = "hidden"
