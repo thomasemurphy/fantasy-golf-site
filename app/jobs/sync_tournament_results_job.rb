@@ -22,8 +22,11 @@ class SyncTournamentResultsJob < ApplicationJob
       return
     end
 
-    # Sanity-check: verify ESPN is returning data for this tournament
-    unless data[:event_name].to_s.downcase.include?(tournament.name.split.last.downcase)
+    # Sanity-check: verify ESPN is returning data for this tournament.
+    # Match on shared distinctive words rather than the last word, since ESPN's
+    # event name can differ from ours (e.g. ESPN "U.S. Open" vs "U.S. Open
+    # Championship", "the Memorial Tournament" vs "Memorial Tournament").
+    unless event_matches?(data[:event_name], tournament.name)
       Rails.logger.warn "[SyncTournamentResultsJob] ESPN event '#{data[:event_name]}' " \
                         "does not match tournament '#{tournament.name}' — skipping"
       return
@@ -85,6 +88,26 @@ class SyncTournamentResultsJob < ApplicationJob
   end
 
   private
+
+  # Generic words shared by many event names; ignored when matching so that two
+  # unrelated events don't match just because both end in "Championship".
+  GENERIC_EVENT_WORDS = %w[
+    the of at and a championship championships tournament invitational
+    classic open presented by golf pga tour
+  ].to_set.freeze
+
+  # True if the ESPN event name and our tournament name share at least one
+  # distinctive (non-generic) word. ESPN only ever returns the single active
+  # PGA event, so this is a guard against syncing during an off week.
+  def event_matches?(espn_name, tournament_name)
+    significant = ->(name) {
+      name.to_s.downcase.gsub(/[^a-z0-9 ]/, " ").split.reject { |w| GENERIC_EVENT_WORDS.include?(w) }.to_set
+    }
+    espn = significant.call(espn_name)
+    ours = significant.call(tournament_name)
+    return false if espn.empty? || ours.empty?
+    espn.intersect?(ours)
+  end
 
   def find_golfers_for_team(tournament, espn_team_name)
     pairing = TeamPairing.find_by(tournament: tournament, espn_team_name: espn_team_name)
