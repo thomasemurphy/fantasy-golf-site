@@ -37,6 +37,7 @@ class SyncTournamentResultsJob < ApplicationJob
 
     just_completed = false
     ApplicationRecord.transaction do
+      synced_golfer_ids = []
       players.each do |p|
         golfers_to_update = if p[:espn_team_name]
           find_golfers_for_team(tournament, p[:espn_team_name])
@@ -45,6 +46,7 @@ class SyncTournamentResultsJob < ApplicationJob
         end
 
         golfers_to_update.each do |golfer|
+          synced_golfer_ids << golfer.id
           result = TournamentResult.find_or_initialize_by(tournament: tournament, golfer: golfer)
           result.assign_attributes(
             current_position:         p[:rank],
@@ -57,6 +59,8 @@ class SyncTournamentResultsJob < ApplicationJob
           result.save!
         end
       end
+
+      prune_stale_results(tournament, synced_golfer_ids)
 
       # Project earnings based on current position and tournament purse.
       project_earnings(tournament)
@@ -128,6 +132,32 @@ class SyncTournamentResultsJob < ApplicationJob
         Golfer.all.find { |g| g.name.split.last.casecmp?(last_name) }
       end
     end
+  end
+
+  # Remove TournamentResult rows for golfers that ESPN no longer returns in the
+  # live field. ESPN occasionally emits a transient/misnamed competitor (e.g. a
+  # placeholder name during Round 1) that later disappears from the feed; because
+  # we only upsert golfers present in the current response, such a row would
+  # otherwise linger forever, frozen at its last-synced state, and show up as a
+  # phantom player on the leaderboard.
+  #
+  # Only prunes while the tournament is still in_progress (a completed event's
+  # results are authoritative and edited separately), and never deletes a result
+  # tied to a pool pick — real players don't vanish from the feed mid-event, so a
+  # picked golfer going missing signals a transient ESPN hiccup we should ride out
+  # rather than destroy data behind a user's pick.
+  def prune_stale_results(tournament, synced_golfer_ids)
+    return unless tournament.status == "in_progress"
+
+    picked_golfer_ids = tournament.picks.pluck(:golfer_id)
+    stale = TournamentResult.where(tournament: tournament)
+                            .where.not(golfer_id: synced_golfer_ids + picked_golfer_ids)
+    return if stale.empty?
+
+    names = stale.includes(:golfer).map { |r| r.golfer.name }
+    count = stale.delete_all
+    Rails.logger.info "[SyncTournamentResultsJob] Pruned #{count} stale result(s) " \
+                      "not in ESPN field: #{names.join(', ')}"
   end
 
   def find_or_create_golfer(espn_name)
