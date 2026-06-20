@@ -29,7 +29,7 @@ class StandingsController < ApplicationController
       tab_id = frame_id.delete_prefix("tab-")
       # Tournament pane sort links use tournament_id= instead of tab=t{id}
       tab_id = "t#{params[:tournament_id]}" if tab_id.blank? && params[:tournament_id].present?
-      redirect_to tab_standings_path(tab: tab_id, sort: params[:sort], dir: params[:dir]) and return
+      redirect_to tab_standings_path(tab: tab_id, sort: params[:sort], dir: params[:dir], live_sub: params[:live_sub]) and return
     end
 
     @live_tournament       = Tournament.find_by(status: "in_progress")
@@ -130,7 +130,14 @@ class StandingsController < ApplicationController
 
     setup_standings_shared_data
 
-    if tab_id =~ /\At(\d+)\z/
+    if tab_id == "live" && @live_tournament
+      @initial_live_sub     = params[:live_sub].presence || "pool"
+      @last_refreshed       = Rails.cache.read("standings_last_refreshed")
+      @live_pool_standings  = live_standings(@live_tournament)
+      @live_field_standings = field_standings(@live_tournament)
+      @live_pairings        = @live_tournament.team_pairings.includes(:golfer_a, :golfer_b).to_a
+      render partial: "live_tab_frame"
+    elsif tab_id =~ /\At(\d+)\z/
       tournament = Tournament.find($1.to_i)
       td = { tournament: tournament, pool: tournament_standings(tournament), field: field_standings(tournament), pairings: tournament.team_pairings.includes(:golfer_a, :golfer_b).to_a }
       render partial: "tournament_tab_frame", locals: { td: td, tab_id: tab_id }
