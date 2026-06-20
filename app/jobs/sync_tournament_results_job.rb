@@ -15,7 +15,8 @@ class SyncTournamentResultsJob < ApplicationJob
       return
     end
 
-    data = EspnGolf.new.current_leaderboard(no_cut: tournament.no_cut?)
+    cut_status = fetch_cut_status(tournament)
+    data = EspnGolf.new.current_leaderboard(no_cut: tournament.no_cut?, cut_status: cut_status)
 
     unless data
       Rails.logger.warn "[SyncTournamentResultsJob] No active ESPN event returned"
@@ -89,6 +90,14 @@ class SyncTournamentResultsJob < ApplicationJob
 
   private
 
+  # Authoritative cut/WD status from PGA Tour, or nil when not applicable
+  # (no-cut event, or no pgatour_id) or when the fetch fails. EspnGolf treats nil
+  # as "fall back to the linescore heuristic".
+  def fetch_cut_status(tournament)
+    return nil if tournament.no_cut? || tournament.pgatour_id.blank?
+    PgaTourScraper.new.live_cut_status(tournament.pgatour_id)
+  end
+
   # Generic words shared by many event names; ignored when matching so that two
   # unrelated events don't match just because both end in "Championship".
   GENERIC_EVENT_WORDS = %w[
@@ -135,9 +144,9 @@ class SyncTournamentResultsJob < ApplicationJob
     return Golfer.find_by(name: normalized) if Golfer.exists?(name: normalized)
 
     # Try accent-stripped comparison (e.g. "Højgaard" → "Hojgaard")
-    stripped = strip_accents(espn_name)
+    stripped = GolferName.strip_accents(espn_name)
     Golfer.all.each do |g|
-      return g if strip_accents(g.name) == stripped
+      return g if GolferName.strip_accents(g.name) == stripped
     end
 
     nil
@@ -188,26 +197,5 @@ class SyncTournamentResultsJob < ApplicationJob
     # Missed-cut players earn nothing.
     TournamentResult.where(tournament: tournament, made_cut: false)
                     .update_all(current_earnings_cents: 0)
-  end
-
-  ACCENT_MAP = {
-    "À" => "A", "Á" => "A", "Â" => "A", "Ã" => "A", "Ä" => "A", "Å" => "A",
-    "à" => "a", "á" => "a", "â" => "a", "ã" => "a", "ä" => "a", "å" => "a",
-    "È" => "E", "É" => "E", "Ê" => "E", "Ë" => "E",
-    "è" => "e", "é" => "e", "ê" => "e", "ë" => "e",
-    "Ì" => "I", "Í" => "I", "Î" => "I", "Ï" => "I",
-    "ì" => "i", "í" => "i", "î" => "i", "ï" => "i",
-    "Ò" => "O", "Ó" => "O", "Ô" => "O", "Õ" => "O", "Ö" => "O", "Ø" => "O",
-    "ò" => "o", "ó" => "o", "ô" => "o", "õ" => "o", "ö" => "o", "ø" => "o",
-    "Ù" => "U", "Ú" => "U", "Û" => "U", "Ü" => "U",
-    "ù" => "u", "ú" => "u", "û" => "u", "ü" => "u",
-    "Ý" => "Y", "ý" => "y", "ÿ" => "y",
-    "Ñ" => "N", "ñ" => "n",
-    "Ç" => "C", "ç" => "c",
-    "ß" => "ss"
-  }.freeze
-
-  def strip_accents(str)
-    str.chars.map { |c| ACCENT_MAP[c] || c }.join
   end
 end

@@ -13,7 +13,12 @@ class SyncLiveLeaderboardJob < ApplicationJob
       return
     end
 
-    data = EspnGolf.new.current_leaderboard
+    cut_status = if tournament.no_cut? || tournament.pgatour_id.blank?
+      nil
+    else
+      PgaTourScraper.new.live_cut_status(tournament.pgatour_id)
+    end
+    data = EspnGolf.new.current_leaderboard(no_cut: tournament.no_cut?, cut_status: cut_status)
 
     unless data
       Rails.logger.warn "[SyncLiveLeaderboardJob] No active ESPN event returned"

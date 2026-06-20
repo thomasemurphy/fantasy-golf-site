@@ -57,6 +57,59 @@ class PgaTourScraper
   # Convenience alias kept for backwards compatibility
   alias payouts results
 
+  # Authoritative cut status for a live (or completed) tournament.
+  # Returns a Hash mapping GolferName.key(name) => :cut or :wd for every player
+  # who missed the cut or withdrew/was DQ'd. Players still in contention are
+  # omitted. The PGA Tour applies the cut to the 36-hole score for us (handling
+  # ties and each major's cut rule), so a player's `position` of "CUT" is the
+  # source of truth.
+  #
+  # Returns nil if the request fails or no leaderboard is available — callers
+  # treat nil as "no authoritative data, fall back to the heuristic". An empty
+  # hash (query succeeded, nobody cut yet) is a distinct, valid result.
+  def live_cut_status(pgatour_id)
+    query = <<~GQL
+      {
+        leaderboardV2(id: "#{pgatour_id}") {
+          players {
+            __typename
+            ... on PlayerRowV2 {
+              position
+              player { displayName }
+            }
+          }
+        }
+      }
+    GQL
+
+    response = @conn.post do |req|
+      req.headers["Content-Type"] = "application/json"
+      req.headers["x-api-key"]    = API_KEY
+      req.body = { query: query }.to_json
+    end
+
+    players = JSON.parse(response.body).dig("data", "leaderboardV2", "players")
+    return nil if players.nil?
+
+    status = {}
+    players.each do |row|
+      next unless row["__typename"] == "PlayerRowV2"
+      name = row.dig("player", "displayName")
+      next if name.blank?
+
+      case row["position"].to_s.upcase
+      when "CUT"
+        status[GolferName.key(name)] = :cut
+      when "WD", "W/D", "DQ"
+        status[GolferName.key(name)] = :wd
+      end
+    end
+    status
+  rescue Faraday::Error => e
+    Rails.logger.error "[PgaTourScraper] live_cut_status request failed: #{e.message}"
+    nil
+  end
+
   private
 
   def parse_earnings(str)

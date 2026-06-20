@@ -14,12 +14,17 @@ class EspnGolf
   #       { espn_id:, name:, rank:, position_display:,
   #         score_to_par:, thru:, current_round:, made_cut: }
   #   ]}
-  def current_leaderboard(no_cut: false)
+  #
+  # cut_status (optional): an authoritative Hash of GolferName.key => :cut/:wd
+  # from PgaTourScraper#live_cut_status. When provided (non-nil) it is the source
+  # of truth for who missed the cut; the ESPN linescore heuristic is only used as
+  # a fallback when cut_status is nil (PGA fetch failed).
+  def current_leaderboard(no_cut: false, cut_status: nil)
     data  = get("scoreboard")
     event = data["events"]&.first
     return nil unless event
 
-    parse_event(event, no_cut: no_cut)
+    parse_event(event, no_cut: no_cut, cut_status: cut_status)
   rescue Faraday::Error => e
     Rails.logger.error "[EspnGolf] Request failed: #{e.message}"
     nil
@@ -31,7 +36,7 @@ class EspnGolf
     JSON.parse(@conn.get(path).body)
   end
 
-  def parse_event(event, no_cut: false)
+  def parse_event(event, no_cut: false, cut_status: nil)
     competition = event["competitions"]&.first
     return nil unless competition
 
@@ -45,7 +50,8 @@ class EspnGolf
     # Classify each competitor as :active, :cut, or :wd up front (see
     # #competitor_status). We need this before ranking so missed-cut and
     # withdrawn players are excluded from the leaderboard positions.
-    statuses = competitors.map { |c| competitor_status(c, period, no_cut: no_cut) }
+    statuses = competitors.map { |c| competitor_status(c, period, no_cut: no_cut, cut_status: cut_status) }
+    warn_unmatched_cut_names(competitors, cut_status) if cut_status.present?
 
     # Build score → { position, tied } map from players still in contention.
     # ESPN keeps missed-cut players in the R3+ feed (their linescores simply stop
@@ -73,14 +79,20 @@ class EspnGolf
   # Classifies a competitor as :active (made the cut / still playing), :cut
   # (missed the cut), or :wd (withdrew). Team competitors are always :active.
   #
-  # Cut detection: the 36-hole cut is applied after round 2. ESPN keeps
-  # missed-cut players in the round-3+ feed, but their linescores stop at round
-  # 2 — players who made the cut receive a round-3 entry (a tee-time stub at
-  # minimum). So once the event reaches round 3, a player with no round-3-or-later
-  # linescore has missed the cut.
-  def competitor_status(c, period, no_cut: false)
+  # When an authoritative cut_status map is supplied (from PGA Tour, keyed by
+  # GolferName.key), it is the source of truth — the PGA Tour applies the 36-hole
+  # cut for us, handling ties and each major's cut rule. We only fall back to the
+  # ESPN linescore heuristic below when cut_status is nil (the PGA fetch failed),
+  # so a PGA outage degrades gracefully rather than flagging nobody.
+  def competitor_status(c, period, no_cut: false, cut_status: nil)
     return :active if c["type"] == "team"
 
+    unless cut_status.nil?
+      return :active if no_cut
+      return cut_status[GolferName.key(c.dig("athlete", "fullName"))] || :active
+    end
+
+    # --- Fallback heuristic (PGA data unavailable) -------------------------
     rounds = c["linescores"] || []
 
     # ESPN signals WD in two ways:
@@ -98,6 +110,16 @@ class EspnGolf
     return :cut if !no_cut && period >= 3 && rounds.none? { |r| r["period"].to_i >= 3 }
 
     :active
+  end
+
+  # Logs any names in the authoritative cut_status map that didn't match an ESPN
+  # competitor — a signal that the two feeds disagree on a player's name form, so
+  # that golfer's cut flag would be silently missed.
+  def warn_unmatched_cut_names(competitors, cut_status)
+    espn_keys = competitors.filter_map { |c| GolferName.key(c.dig("athlete", "fullName")) if c["type"] != "team" }.to_set
+    unmatched = cut_status.keys.reject { |k| espn_keys.include?(k) }
+    return if unmatched.empty?
+    Rails.logger.warn "[EspnGolf] #{unmatched.size} PGA cut/WD player(s) not matched to ESPN field: #{unmatched.join(', ')}"
   end
 
   def parse_competitor(c, period, completed, score_meta, status)
