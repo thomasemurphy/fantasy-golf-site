@@ -13,3 +13,20 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+
+  # Auto-complete each week's tournament and pull authoritative final earnings.
+  # SyncTournamentResultsJob (no args) finds the active tournament, refreshes the
+  # live leaderboard, and once ESPN reports the event final (and we're past the
+  # end date) marks it completed + enqueues SyncTournamentEarningsJob, which
+  # scrapes final payouts from PGA Tour by pgatour_id. The job self-guards, so
+  # running every 15 minutes is a "retry until it finishes" loop: each pre-final
+  # run just refreshes the leaderboard, and runs after completion are no-ops.
+  #
+  # Window: every 15 min from 7:00pm ET Sunday through end of Monday ET — covers
+  # normal Sunday finishes plus weather/playoff Monday finishes.
+  sync_results_sunday_night:
+    class: SyncTournamentResultsJob
+    schedule: "*/15 19-23 * * 0 America/New_York"
+  sync_results_monday:
+    class: SyncTournamentResultsJob
+    schedule: "*/15 * * * 1 America/New_York"
