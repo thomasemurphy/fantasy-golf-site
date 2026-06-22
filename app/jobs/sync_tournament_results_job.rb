@@ -15,6 +15,16 @@ class SyncTournamentResultsJob < ApplicationJob
       return
     end
 
+    # Stop working once the event is final and its authoritative earnings are in.
+    # The recurring task keeps firing on its schedule, but there's nothing left to
+    # do until the next tournament becomes active — so exit immediately instead of
+    # re-hitting ESPN/PGA and re-projecting an already-finished leaderboard.
+    if tournament.status == "completed" && earnings_finalized?(tournament)
+      Rails.logger.info "[SyncTournamentResultsJob] #{tournament.name} already completed " \
+                        "with earnings synced — nothing to do"
+      return
+    end
+
     cut_status = fetch_cut_status(tournament)
     data = EspnGolf.new.current_leaderboard(no_cut: tournament.no_cut?, cut_status: cut_status)
 
@@ -35,7 +45,6 @@ class SyncTournamentResultsJob < ApplicationJob
 
     players = data[:players]
 
-    just_completed = false
     ApplicationRecord.transaction do
       synced_golfer_ids = []
       players.each do |p|
@@ -75,12 +84,16 @@ class SyncTournamentResultsJob < ApplicationJob
 
       if data[:completed] && tournament.status == "in_progress" && Time.current >= tournament.end_date.end_of_day
         tournament.update!(status: "completed")
-        just_completed = true
         Rails.logger.info "[SyncTournamentResultsJob] Marked #{tournament.name} as completed"
       end
     end
 
-    if just_completed
+    # Pull authoritative final earnings whenever the event is completed but its
+    # earnings haven't been finalized yet. This covers the tournament we just
+    # marked completed above, and also retries on a later tick if a previous
+    # earnings sync failed — so the recurring job keeps trying until earnings
+    # land, after which the guard at the top of #perform makes it stop.
+    if tournament.status == "completed" && !earnings_finalized?(tournament)
       if tournament.pgatour_id.present?
         SyncTournamentEarningsJob.perform_later(tournament.id)
         Rails.logger.info "[SyncTournamentResultsJob] Enqueued SyncTournamentEarningsJob for #{tournament.name}"
@@ -93,6 +106,15 @@ class SyncTournamentResultsJob < ApplicationJob
   end
 
   private
+
+  # True once authoritative final earnings have been written for the tournament.
+  # SyncTournamentResultsJob only ever writes current_earnings_cents (the live
+  # projection); earnings_cents is set exclusively by SyncTournamentEarningsJob
+  # (and historical manual seeds), so any non-nil earnings_cents means the final
+  # earnings sync has already run.
+  def earnings_finalized?(tournament)
+    TournamentResult.where(tournament: tournament).where.not(earnings_cents: nil).exists?
+  end
 
   # Authoritative cut/WD status from PGA Tour, or nil when not applicable
   # (no-cut event, or no pgatour_id) or when the fetch fails. EspnGolf treats nil
