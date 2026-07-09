@@ -61,7 +61,7 @@
     </div>
     <%# Full tab list — shown when expanded %>
     <ul class="nav nav-pills nav-pills-sm flex-wrap mt-1" id="weekTabs" role="tablist">
-      <% (@completed_tournaments.to_a + @upcoming_tournaments.to_a).each do |t| %>
+      <% (@completed_tournaments.to_a + @upcoming_tournaments.to_a).sort_by(&:week_number).each do |t| %>
         <% upcoming = t.status == "upcoming" %>
         <% target     = t.status == "in_progress" ? "tab-live" : "tab-t#{t.id}" %>
         <% active     = t.status == "in_progress" ? @initial_tab == "live" : @initial_tab == "t#{t.id}" %>
