@@ -22,11 +22,12 @@ production:
   # running every 15 minutes is a "retry until it finishes" loop: each pre-final
   # run just refreshes the leaderboard, and runs after completion are no-ops.
   #
-  # Window: every 15 min from 7:00pm ET Sunday through end of Monday ET — covers
-  # normal Sunday finishes plus weather/playoff Monday finishes.
+  # Window: every 15 min from 3:00pm ET Sunday through end of Monday ET — covers
+  # normal Sunday finishes plus weather/playoff Monday finishes. Starts at 3pm
+  # (rather than 7pm) to catch early finishes from UK-hosted events.
   sync_results_sunday_night:
     class: SyncTournamentResultsJob
-    schedule: "*/15 19-23 * * 0 America/New_York"
+    schedule: "*/15 15-23 * * 0 America/New_York"
   sync_results_monday:
     class: SyncTournamentResultsJob
     schedule: "*/15 * * * 1 America/New_York"
