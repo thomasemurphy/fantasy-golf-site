@@ -135,6 +135,12 @@ class SyncTournamentResultsJob < ApplicationJob
   # distinctive (non-generic) word. ESPN only ever returns the single active
   # PGA event, so this is a guard against syncing during an off week.
   def event_matches?(espn_name, tournament_name)
+    # ESPN calls this major simply "The Open" — every one of its words ("the",
+    # "open", "championship") is in GENERIC_EVENT_WORDS, so the significant-word
+    # check below would always come up empty for it. Handle it explicitly.
+    return true if espn_name.to_s.strip.casecmp("The Open").zero? &&
+                   tournament_name.to_s.downcase.include?("open championship")
+
     significant = ->(name) {
       name.to_s.downcase.gsub(/[^a-z0-9 ]/, " ").split.reject { |w| GENERIC_EVENT_WORDS.include?(w) }.to_set
     }
