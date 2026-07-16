@@ -321,6 +321,16 @@ class StandingsController < ApplicationController
                       overall_rank += group.size
                     end
 
+    @majors_rank_by_user_id = {}
+    majors_rank = 1
+    @standings_users.sort_by { |u| [-@user_earnings_by_tab[u.id]["majors"], u.name] }
+                    .chunk_while { |a, b| @user_earnings_by_tab[a.id]["majors"] == @user_earnings_by_tab[b.id]["majors"] }
+                    .each do |group|
+                      display = group.size > 1 ? "T#{majors_rank}" : majors_rank.to_s
+                      group.each { |u| @majors_rank_by_user_id[u.id] = display }
+                      majors_rank += group.size
+                    end
+
     @history_picks_by_user = @standings_users.each_with_object({}) do |user, h|
       h[user.id] = user.picks
         .select { |p| @completed_tid.include?(p.tournament_id) }
@@ -394,6 +404,7 @@ class StandingsController < ApplicationController
 
     picks.sort_by! do |p|
       next [-total_earnings_by_user[p.user_id].to_i, p.user.name] if sort == "season"
+      next [-@user_earnings_by_tab[p.user_id]["majors"], p.user.name] if sort == "majors"
       t = tier.call(p)
       next [1, tee_time_minutes(p.current_thru), p.golfer.name, p.user.name] if t == 1
       case sort
@@ -411,7 +422,7 @@ class StandingsController < ApplicationController
       end
     end
     picks.reverse! if %w[player golfer].include?(sort) && dir == "desc"
-    picks.reverse! if sort == "season" && dir == "asc"
+    picks.reverse! if %w[season majors].include?(sort) && dir == "asc"
 
     # Tie-aware rank: only started (tier 0) players receive a numeric rank
     by_earnings = picks.sort_by { |p| [tier.call(p), -effective_proj.call(p), p.golfer.name, p.user.name] }
@@ -442,7 +453,9 @@ class StandingsController < ApplicationController
         current_earnings_cents: pick.auto_assigned? ? 0 : (pick.is_double_down? ? pick.current_earnings_cents.to_i * 2 : pick.current_earnings_cents),
         completed_picks:        history_by_user[pick.user_id] || [],
         total_earnings_cents:   total_earnings_by_user[pick.user_id] || 0,
+        total_majors_earnings_cents: @user_earnings_by_tab[pick.user_id]["majors"],
         overall_rank:           overall_rank_by_user_id[pick.user_id] || "—",
+        majors_rank:            @majors_rank_by_user_id[pick.user_id] || "—",
         golfer_history:         golfer_history[pick.golfer_id] || []
       }
     end

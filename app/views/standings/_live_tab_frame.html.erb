@@ -5,6 +5,9 @@
     <% live_base_field = { tab: "live", live_sub: "field" } %>
     <% cur_sort  = (@initial_tab == "live" ? @sort : nil) || "earnings"; cur_dir = (@initial_tab == "live" ? @dir : nil) || "desc" %>
     <% on_cooldown = @last_refreshed && Time.current - @last_refreshed < StandingsController::REFRESH_COOLDOWN %>
+    <%# The final major of the season: show the season Pos/Earnings columns as
+        Majors-pot standings instead, so the pool can watch the majors race live. %>
+    <% majors_week = @live_tournament.tournament_type == "major" %>
 
     <turbo-frame id="tab-live" class="tab-pane fade <%= 'show active' if @initial_tab == 'live' %>" role="tabpanel">
       <div class="live-standings-outer">
@@ -43,8 +46,13 @@
                     <tr>
                       <th>Rank</th>
                       <th><%= sort_header("Player",         "player",   live_base_pool, cur_sort, cur_dir) %></th>
-                      <th class="text-center">Pos</th>
-                      <th style="text-align:right;padding-left:4px;padding-right:8px"><%= sort_header("Earnings", "season", live_base_pool, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                      <% if majors_week %>
+                        <th class="text-center"><%= sort_header("Majors Pos", "majors", live_base_pool, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                        <th style="text-align:right;padding-left:4px;padding-right:8px"><%= sort_header("Majors $", "majors", live_base_pool, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                      <% else %>
+                        <th class="text-center">Pos</th>
+                        <th style="text-align:right;padding-left:4px;padding-right:8px"><%= sort_header("Earnings", "season", live_base_pool, cur_sort, cur_dir, natural_dir: "desc") %></th>
+                      <% end %>
                       <th style="padding-left:48px;padding-right:0"><%= sort_header("Golfer",         "golfer",   live_base_pool, cur_sort, cur_dir) %></th>
                       <th class="text-center" style="padding-left:0"><%= sort_header("Pos",    "pos",      live_base_pool, cur_sort, cur_dir) %></th>
                       <th class="text-center"><%= sort_header("Score",  "score",    live_base_pool, cur_sort, cur_dir) %></th>
@@ -59,10 +67,11 @@
                         <td>
                           <%= render "standings/player_tooltip", row: row, pool_max_total: live_max_total, pool_size: @live_pool_standings.size %>
                         </td>
-                        <td class="text-center tabular-nums"><%= row[:overall_rank] %></td>
+                        <td class="text-center tabular-nums"><%= majors_week ? row[:majors_rank] : row[:overall_rank] %></td>
                         <td class="tabular-nums" style="text-align:right;padding-left:4px;padding-right:8px">
-                          <% if row[:total_earnings_cents].to_i > 0 %>
-                            <%= abbreviated_earnings(row[:total_earnings_cents]) %>
+                          <% row_total = majors_week ? row[:total_majors_earnings_cents] : row[:total_earnings_cents] %>
+                          <% if row_total.to_i > 0 %>
+                            <%= abbreviated_earnings(row_total) %>
                           <% else %>
                             <span class="text-muted">$0.0m</span>
                           <% end %>
