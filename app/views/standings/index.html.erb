@@ -156,7 +156,7 @@
               </tr>
             </thead>
             <tbody>
-              <% @all_season_golfers.each do |row| %>
+              <% @all_season_golfers.reject { |row| row[:earnings_cents].to_i == 0 }.each do |row| %>
                 <tr>
                   <td><span class="standings-rank"><%= row[:rank] %></span></td>
                   <td>
