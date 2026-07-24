@@ -53,12 +53,17 @@ class EspnGolf
     statuses = competitors.map { |c| competitor_status(c, period, no_cut: no_cut, cut_status: cut_status) }
     warn_unmatched_cut_names(competitors, cut_status) if cut_status.present?
 
+    # Computed once up front (see #compute_score_to_par) so ranking and each
+    # player's displayed score agree — both must use the same corrected value,
+    # not the raw ESPN summary field.
+    scores = competitors.map { |c| compute_score_to_par(c["score"], c["linescores"] || []) }
+
     # Build score → { position, tied } map from players still in contention.
     # ESPN keeps missed-cut players in the R3+ feed (their linescores simply stop
     # at round 2), so we rank only the players who are still active.
     active_scores = competitors.each_index
                                .select { |i| statuses[i] == :active }
-                               .map { |i| parse_score(competitors[i]["score"]) }
+                               .map { |i| scores[i] }
                                .sort
 
     score_meta = {}  # score_to_par => { pos:, tied: }
@@ -69,7 +74,7 @@ class EspnGolf
     end
 
     players = competitors.each_index.map do |i|
-      parse_competitor(competitors[i], period, completed, score_meta, statuses[i])
+      parse_competitor(competitors[i], period, completed, score_meta, statuses[i], scores[i])
     end
 
     { event_name: event["name"], completed: completed, period: period,
@@ -122,12 +127,11 @@ class EspnGolf
     Rails.logger.warn "[EspnGolf] #{unmatched.size} PGA cut/WD player(s) not matched to ESPN field: #{unmatched.join(', ')}"
   end
 
-  def parse_competitor(c, period, completed, score_meta, status)
-    return parse_team_competitor(c, period, completed, score_meta) if c["type"] == "team"
+  def parse_competitor(c, period, completed, score_meta, status, score_to_par)
+    return parse_team_competitor(c, period, completed, score_meta, score_to_par) if c["type"] == "team"
 
-    score_to_par = parse_score(c["score"] || "E")
-    rounds       = c["linescores"] || []
-    tee_time     = extract_tee_time(rounds.find { |r| r["period"] == period })
+    rounds   = c["linescores"] || []
+    tee_time = extract_tee_time(rounds.find { |r| r["period"] == period })
 
     rank, position_display =
       case status
@@ -151,11 +155,9 @@ class EspnGolf
     }
   end
 
-  def parse_team_competitor(c, period, completed, score_meta)
-    score_str    = c["score"] || "E"
-    score_to_par = parse_score(score_str)
-    rounds       = c["linescores"] || []
-    team_name    = c.dig("team", "displayName")
+  def parse_team_competitor(c, period, completed, score_meta, score_to_par)
+    rounds    = c["linescores"] || []
+    team_name = c.dig("team", "displayName")
 
     meta = score_meta[score_to_par] || { pos: 999, tied: false }
     pos  = meta[:pos]
@@ -175,6 +177,18 @@ class EspnGolf
   def parse_score(str)
     return 0 if str.nil? || str == "E"
     str.to_i
+  end
+
+  # ESPN's top-level competitor "score" lags behind actual play for a chunk of
+  # the field during a live round (seen live: ~20% of golfers mid-round showed a
+  # stale total while their own per-hole linescores were already correct and
+  # current). Prefer summing each round's own displayValue over trusting that
+  # summary field. Only fall back to the top-level score when no round has
+  # started yet (started.empty?).
+  def compute_score_to_par(top_score, rounds)
+    started = rounds.select { |r| r["linescores"].present? }
+    return parse_score(top_score || "E") if started.empty?
+    started.sum { |r| parse_score(r["displayValue"]) }
   end
 
   def compute_thru(rounds, period, completed, missed_cut, tee_time = nil)
