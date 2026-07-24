@@ -45,7 +45,10 @@ class SyncLiveLeaderboardJob < ApplicationJob
       end
     end
 
-    if data[:completed] && tournament.status == "in_progress"
+    # ESPN sets completed=true as soon as each round's play wraps ("Round 2 -
+    # Play Complete"), not just at the tournament's actual end — so guard on the
+    # end date too, matching SyncTournamentResultsJob's guard.
+    if data[:completed] && tournament.status == "in_progress" && Time.current >= tournament.end_date.end_of_day
       tournament.update!(status: "completed")
       Rails.logger.info "[SyncLiveLeaderboardJob] Marked #{tournament.name} as completed"
     end
