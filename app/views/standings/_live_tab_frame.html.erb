@@ -47,6 +47,7 @@
                       <th>Rank</th>
                       <th><%= sort_header("Player",         "player",   live_base_pool, cur_sort, cur_dir) %></th>
                       <% if majors_week %>
+                        <th class="text-center"><%= sort_header("Pos", "season", live_base_pool, cur_sort, cur_dir, natural_dir: "desc") %></th>
                         <th class="text-center"><%= sort_header("Majors Pos", "majors", live_base_pool, cur_sort, cur_dir, natural_dir: "desc") %></th>
                         <th style="text-align:right;padding-left:4px;padding-right:8px"><%= sort_header("Majors $", "majors", live_base_pool, cur_sort, cur_dir, natural_dir: "desc") %></th>
                       <% else %>
@@ -67,6 +68,9 @@
                         <td>
                           <%= render "standings/player_tooltip", row: row, pool_max_total: live_max_total, pool_size: @live_pool_standings.size %>
                         </td>
+                        <% if majors_week %>
+                          <td class="text-center tabular-nums"><%= row[:overall_rank] %></td>
+                        <% end %>
                         <td class="text-center tabular-nums"><%= majors_week ? row[:majors_rank] : row[:overall_rank] %></td>
                         <td class="tabular-nums" style="text-align:right;padding-left:4px;padding-right:8px">
                           <% row_total = majors_week ? row[:total_majors_earnings_cents] : row[:total_earnings_cents] %>
