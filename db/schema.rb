@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_07_215918) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_27_053725) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -72,7 +72,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_215918) do
     t.integer "current_round"
     t.integer "current_score_to_par"
     t.string "current_thru"
-    t.bigint "earnings_cents", default: 0
+    t.bigint "earnings_cents"
     t.bigint "golfer_id", null: false
     t.boolean "made_cut", default: false, null: false
     t.integer "position"
