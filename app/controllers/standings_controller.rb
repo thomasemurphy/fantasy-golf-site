@@ -210,14 +210,27 @@ class StandingsController < ApplicationController
   def tournament_standings(tournament)
     sort = (@initial_tab == "t#{tournament.id}" ? @sort : nil) || "earnings"
     dir  = (@initial_tab == "t#{tournament.id}" ? @dir  : nil) || "desc"
+    tournament_completed = tournament.status == "completed"
 
     picks = Pick.where(tournament: tournament)
                 .joins("LEFT JOIN tournament_results ON tournament_results.tournament_id = picks.tournament_id
                         AND tournament_results.golfer_id = picks.golfer_id")
                 .select("picks.*, tournament_results.current_position, " \
-                        "tournament_results.current_position_display, tournament_results.current_score_to_par")
+                        "tournament_results.current_position_display, tournament_results.current_score_to_par, " \
+                        "tournament_results.current_earnings_cents")
                 .preload(:user, :golfer)
                 .to_a
+
+    # Final earnings aren't posted to picks.earnings_cents until the tournament
+    # completes — until then, show the live-projected earnings (same math as the
+    # Live tab: doubled for double-downs, zero for auto-assigned picks) so this
+    # tournament's own leaderboard and any pool-wide columns derived from it agree.
+    effective_cents = ->(p) {
+      next p.earnings_cents if tournament_completed
+      next 0 if p.auto_assigned?
+      next nil if p.current_earnings_cents.nil?
+      p.is_double_down? ? p.current_earnings_cents.to_i * 2 : p.current_earnings_cents.to_i
+    }
 
     # Build tooltip data from preloaded shared data
     history_by_user = @history_picks_by_user.transform_values do |user_picks|
@@ -245,12 +258,12 @@ class StandingsController < ApplicationController
       else 0
       end
     }
-    by_earnings = picks.sort_by { |p| [bottom_val.call(p), -(p.earnings_cents || 0), p.current_position || 9999, p.golfer.name, p.user.name] }
+    by_earnings = picks.sort_by { |p| [bottom_val.call(p), -(effective_cents.call(p) || 0), p.current_position || 9999, p.golfer.name, p.user.name] }
 
     rank_by_id = {}
     rank = 1
     by_earnings.chunk_while { |a, b|
-      bottom_val.call(a) == 0 && bottom_val.call(b) == 0 && (a.earnings_cents || 0) == (b.earnings_cents || 0)
+      bottom_val.call(a) == 0 && bottom_val.call(b) == 0 && (effective_cents.call(a) || 0) == (effective_cents.call(b) || 0)
     }.each do |group|
       if bottom_val.call(group.first) > 0
         group.each { |p| rank_by_id[p.id] = "—" }
@@ -272,7 +285,7 @@ class StandingsController < ApplicationController
       when "golfer"   then [p.golfer.name]
       when "pos"      then [bot, p.current_position || 9999, p.golfer_id, p.user.name]
       when "earnings"
-        base = p.earnings_cents || 0
+        base = effective_cents.call(p) || 0
         earnings_val = dir == "desc" ? -base : base
         if bot == 0
           [0, earnings_val, p.current_position || 9999, p.golfer.name, p.user.name]
@@ -301,7 +314,7 @@ class StandingsController < ApplicationController
         pick:                  pick,
         position_display:      pick.current_position_display,
         score_to_par:          pick.current_score_to_par,
-        earnings_cents:        pick.earnings_cents,
+        earnings_cents:        effective_cents.call(pick),
         completed_picks:       history_by_user[pick.user_id] || [],
         total_earnings_cents:  total_earnings_by_user[pick.user_id] || 0,
         golfer_history:        golfer_history[pick.golfer_id] || []
@@ -315,23 +328,15 @@ class StandingsController < ApplicationController
 
   # This week's High-Purse Side Pot tournament (e.g. FedEx St. Jude) — each user's pick
   # and its live projected earnings, for the extra columns on the side_events tab.
+  # Sourced from tournament_standings (the FedEx tab's own leaderboard) so the two
+  # views can never disagree on a projected-earnings number.
   def side_pot_live_event_data
     tournament = Tournament.where(tournament_type: "side_event", status: "in_progress").order(:week_number).last
     @side_pot_live_tournament = tournament
     return {} unless tournament
 
-    picks   = Pick.where(tournament: tournament, user_id: @standings_users.map(&:id)).includes(:golfer).index_by(&:user_id)
-    results = TournamentResult.where(tournament: tournament).index_by(&:golfer_id)
-
-    picks.each_with_object({}) do |(user_id, pick), h|
-      result = results[pick.golfer_id]
-      projected =
-        if pick.auto_assigned?
-          0
-        elsif result
-          pick.is_double_down? ? result.current_earnings_cents.to_i * 2 : result.current_earnings_cents.to_i
-        end
-      h[user_id] = { pick: pick, golfer: pick.golfer, projected_cents: projected }
+    tournament_standings(tournament).each_with_object({}) do |row, h|
+      h[row[:user].id] = { pick: row[:pick], golfer: row[:golfer], projected_cents: row[:earnings_cents] }
     end
   end
 
