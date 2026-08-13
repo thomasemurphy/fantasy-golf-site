@@ -6,7 +6,8 @@
 <% max_total_earnings = standings.map { |r| r[:total_earnings_cents].to_i }.max || 1 %>
 <% max_earnings = standings.map { |r| r[:earnings_cents].to_i }.max.then { |m| m > 0 ? m : 1 } %>
 <% scoped = @initial_tab == tab_id %>
-<% cur_sort = (scoped ? @sort : nil) || "earnings"; cur_dir = (scoped ? @dir : nil) || "desc" %>
+<% default_sort = tab_id == "side_events" ? "proj_high_purse" : "earnings" %>
+<% cur_sort = (scoped ? @sort : nil) || default_sort; cur_dir = (scoped ? @dir : nil) || "desc" %>
 <% s_base = { tab: tab_id } %>
 <% skip_wrapper = local_assigns.fetch(:skip_wrapper, false) %>
 <% tag_open  = skip_wrapper ? "".html_safe : "<div class=\"standings-table-wrapper\">".html_safe %>
@@ -20,12 +21,21 @@
         <th class="text-end"><%= sort_header("Earnings", "earnings", s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         <th class="text-center"><%= sort_header("2x Left", "dd",     s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         <th class="text-center"><%= sort_header("No-Cut",  "nocut",  s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+        <% if tab_id == "side_events" %>
+          <th>FedEx Pick</th>
+          <th class="text-end">Proj. FedEx $</th>
+          <th class="text-end"><%= sort_header("Proj High-Purse", "proj_high_purse", s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
+        <% end %>
       </tr>
     </thead>
     <tbody>
       <% standings.each do |row| %>
-        <% rank_num = row[:rank].to_s.sub("T", "").to_i %>
-        <% in_money = pot_top_n && rank_num.positive? && rank_num <= pot_top_n %>
+        <% in_money = if tab_id == "side_events"
+          row[:proj_high_purse_in_money]
+        else
+          rank_num = row[:rank].to_s.sub("T", "").to_i
+          pot_top_n && rank_num.positive? && rank_num <= pot_top_n
+        end %>
         <tr class="<%= 'highlight' if row[:user] == current_user %>"<%= " style=\"background: color-mix(in srgb, #{pot_tint} 18%, transparent)\"".html_safe if in_money %>>
           <td><span class="standings-rank"><%= row[:rank] %></span></td>
           <td>
@@ -53,6 +63,27 @@
               <span style="color: #a0522d;">🍞 Toast</span>
             <% end %>
           </td>
+          <% if tab_id == "side_events" %>
+            <td>
+              <% if row[:fedex_golfer] %>
+                <%= row[:fedex_golfer].name %>
+                <% if row[:fedex_pick].is_double_down? %><span class="badge bg-warning text-dark ms-1">2x</span><% end %>
+                <% if row[:fedex_pick].auto_assigned? %><span class="badge bg-secondary ms-1">Auto</span><% end %>
+              <% else %>
+                <span class="text-muted">—</span>
+              <% end %>
+            </td>
+            <td class="text-end tabular-nums">
+              <% if row[:fedex_projected_cents] %>
+                $<%= number_with_delimiter((row[:fedex_projected_cents] / 100.0).to_i) %>
+              <% else %>
+                <span class="text-muted">—</span>
+              <% end %>
+            </td>
+            <td class="text-end tabular-nums fw-semibold">
+              $<%= number_with_delimiter((row[:side_plus_fedex_cents].to_i / 100.0).to_i) %>
+            </td>
+          <% end %>
         </tr>
       <% end %>
     </tbody>

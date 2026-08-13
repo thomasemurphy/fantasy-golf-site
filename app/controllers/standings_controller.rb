@@ -150,8 +150,11 @@ class StandingsController < ApplicationController
   private
 
   def compute_standings(tab)
-    sort = (@initial_tab == tab ? @sort : nil) || "earnings"
+    default_sort = tab == "side_events" ? "proj_high_purse" : "earnings"
+    sort = (@initial_tab == tab ? @sort : nil) || default_sort
     dir  = (@initial_tab == tab ? @dir  : nil) || "desc"
+
+    fedex_data = tab == "side_events" ? side_pot_live_event_data : {}
 
     # Rank is always earnings-based, independent of display sort
     by_earnings = @standings_users.sort_by { |u| [-earnings_for_tab(u, tab), u.name] }
@@ -164,21 +167,42 @@ class StandingsController < ApplicationController
           { pick: p, position: @results_index[[p.tournament_id, p.golfer_id]]&.current_position_display }
         }
         total_earnings = user.picks.sum { |p| p.earnings_cents.to_i }
-        { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings, live_pick: @live_pick_by_user_id[user.id] }
+        row = { rank: display, user: user, earnings_cents: earnings_for_tab(user, tab), completed_picks: completed_picks, total_earnings_cents: total_earnings, live_pick: @live_pick_by_user_id[user.id] }
+        if tab == "side_events"
+          fx = fedex_data[user.id]
+          row[:fedex_pick]            = fx && fx[:pick]
+          row[:fedex_golfer]          = fx && fx[:golfer]
+          row[:fedex_projected_cents] = fx && fx[:projected_cents]
+          row[:side_plus_fedex_cents] = row[:earnings_cents].to_i + (fx && fx[:projected_cents]).to_i
+        end
+        row
       end
+    end
+
+    # Top-3-by-projected-total flag, independent of the currently selected display
+    # sort — mirrors how :rank is always earnings-based regardless of display sort.
+    if tab == "side_events"
+      proj_rank = 1
+      rows.sort_by { |r| -r[:side_plus_fedex_cents].to_i }
+          .chunk_while { |a, b| a[:side_plus_fedex_cents].to_i == b[:side_plus_fedex_cents].to_i }
+          .each do |group|
+            group.each { |r| r[:proj_high_purse_in_money] = proj_rank <= 3 }
+            proj_rank += group.size
+          end
     end
 
     # Apply display sort
     rows.sort_by! do |row|
       u = row[:user]
       case sort
-      when "player"   then u.name
-      when "dd"       then u.double_downs_remaining
-      when "nocut"    then u.no_cut_streak_alive? ? 0 : 1
-      else                 [-row[:earnings_cents].to_i, u.name]
+      when "player"          then u.name
+      when "dd"              then u.double_downs_remaining
+      when "nocut"           then u.no_cut_streak_alive? ? 0 : 1
+      when "proj_high_purse" then [-row[:side_plus_fedex_cents].to_i, u.name]
+      else                        [-row[:earnings_cents].to_i, u.name]
       end
     end
-    rows.reverse! if %w[earnings dd nocut].include?(sort) && dir == "asc"
+    rows.reverse! if %w[earnings dd nocut proj_high_purse].include?(sort) && dir == "asc"
     rows.reverse! if sort == "player" && dir == "desc"
     rows
   end
@@ -287,6 +311,28 @@ class StandingsController < ApplicationController
 
   def earnings_for_tab(user, tab)
     @user_earnings_by_tab[user.id][tab]
+  end
+
+  # This week's High-Purse Side Pot tournament (e.g. FedEx St. Jude) — each user's pick
+  # and its live projected earnings, for the extra columns on the side_events tab.
+  def side_pot_live_event_data
+    tournament = Tournament.where(tournament_type: "side_event", status: "in_progress").order(:week_number).last
+    @side_pot_live_tournament = tournament
+    return {} unless tournament
+
+    picks   = Pick.where(tournament: tournament, user_id: @standings_users.map(&:id)).includes(:golfer).index_by(&:user_id)
+    results = TournamentResult.where(tournament: tournament).index_by(&:golfer_id)
+
+    picks.each_with_object({}) do |(user_id, pick), h|
+      result = results[pick.golfer_id]
+      projected =
+        if pick.auto_assigned?
+          0
+        elsif result
+          pick.is_double_down? ? result.current_earnings_cents.to_i * 2 : result.current_earnings_cents.to_i
+        end
+      h[user_id] = { pick: pick, golfer: pick.golfer, projected_cents: projected }
+    end
   end
 
   def setup_standings_shared_data
