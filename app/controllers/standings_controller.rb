@@ -186,7 +186,7 @@ class StandingsController < ApplicationController
       rows.sort_by { |r| -r[:side_plus_fedex_cents].to_i }
           .chunk_while { |a, b| a[:side_plus_fedex_cents].to_i == b[:side_plus_fedex_cents].to_i }
           .each do |group|
-            group.each { |r| r[:proj_high_purse_in_money] = proj_rank <= 3 }
+            group.each { |r| r[:proj_high_purse_in_money] = proj_rank <= 3; r[:proj_high_purse_rank] = proj_rank }
             proj_rank += group.size
           end
     end

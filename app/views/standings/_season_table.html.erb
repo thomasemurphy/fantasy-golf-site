@@ -15,6 +15,7 @@
       <tr>
         <th>Rank</th>
         <th><%= sort_header("Player",   "player", s_base, cur_sort, cur_dir) %></th>
+        <th></th>
         <th class="text-end"><%= sort_header("Earnings", "earnings", s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         <% if tab_id == "side_events" %>
           <th>FedEx Pick</th>
@@ -25,18 +26,15 @@
     </thead>
     <tbody>
       <% standings.each do |row| %>
-        <% in_money = if tab_id == "side_events"
-          row[:proj_high_purse_in_money]
-        else
-          rank_num = row[:rank].to_s.sub("T", "").to_i
-          pot_top_n && rank_num.positive? && rank_num <= pot_top_n
-        end %>
+        <% money_rank = tab_id == "side_events" ? row[:proj_high_purse_rank] : row[:rank].to_s.sub("T", "").to_i %>
+        <% in_money = pot_top_n && money_rank && money_rank.positive? && money_rank <= pot_top_n %>
         <tr class="<%= 'highlight' if row[:user] == current_user %>"<%= " style=\"background: color-mix(in srgb, #{pot_tint} 18%, transparent)\"".html_safe if in_money %>>
           <td><span class="standings-rank"><%= row[:rank] %></span></td>
           <td>
             <%= render "standings/player_tooltip", row: row, pool_max_total: max_total_earnings,
                        pool_size: standings.size, rank: row[:rank], live_pick: row[:live_pick] %>
           </td>
+          <td><%= "💰" * (pot_top_n - money_rank + 1) if in_money %></td>
           <td class="text-end tabular-nums">
             <% if row[:earnings_cents] %>
               $<%= number_with_delimiter((row[:earnings_cents] / 100.0).to_i) %>
