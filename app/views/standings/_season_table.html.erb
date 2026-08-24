@@ -1,4 +1,3 @@
-<% no_cut_alive_ids = @no_cut_users.map(&:id).to_set %>
 <% bar_color = { "overall" => nil, "majors" => "#c0392b", "side_events" => "#198754", "pink_events" => "#e07ab8", "first_half" => "#F5D049", "second_half" => "#D46C19" }[tab_id] %>
 <% pot_top_n  = { "overall" => 5, "majors" => 3, "side_events" => 3, "pink_events" => 1, "first_half" => 1, "second_half" => 1 }[tab_id] %>
 <% pot_tint   = bar_color || "var(--color-regular)" %>
@@ -20,7 +19,6 @@
         <th><%= sort_header("Player",   "player", s_base, cur_sort, cur_dir) %></th>
         <th class="text-end"><%= sort_header("Earnings", "earnings", s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         <th class="text-center"><%= sort_header("2x Left", "dd",     s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
-        <th class="text-center"><%= sort_header("No-Cut",  "nocut",  s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
         <% if tab_id == "side_events" %>
           <th>FedEx Pick</th>
           <th class="text-end">Proj. FedEx $</th>
@@ -56,13 +54,6 @@
           <% dd = row[:user].double_downs_remaining %>
           <% dd_hue = dd_min == 5 ? 120 : ((dd - dd_min).to_f / (5 - dd_min) * 120).round %>
           <td class="text-center" style="color: hsl(<%= dd_hue %>, 65%, 42%); font-weight: 600"><%= dd %></td>
-          <td class="text-center">
-            <% if no_cut_alive_ids.include?(row[:user].id) %>
-              <span class="text-success fw-semibold">Still alive</span>
-            <% else %>
-              <span style="color: #a0522d;">🍞 Toast</span>
-            <% end %>
-          </td>
           <% if tab_id == "side_events" %>
             <td>
               <% if row[:fedex_golfer] %>

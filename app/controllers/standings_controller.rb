@@ -197,12 +197,11 @@ class StandingsController < ApplicationController
       case sort
       when "player"          then u.name
       when "dd"              then u.double_downs_remaining
-      when "nocut"           then u.no_cut_streak_alive? ? 0 : 1
       when "proj_high_purse" then [-row[:side_plus_fedex_cents].to_i, u.name]
       else                        [-row[:earnings_cents].to_i, u.name]
       end
     end
-    rows.reverse! if %w[earnings dd nocut proj_high_purse].include?(sort) && dir == "asc"
+    rows.reverse! if %w[earnings dd proj_high_purse].include?(sort) && dir == "asc"
     rows.reverse! if sort == "player" && dir == "desc"
     rows
   end
@@ -348,7 +347,6 @@ class StandingsController < ApplicationController
     @results_index                 = TournamentResult.where(tournament_id: @completed_tid)
                                                      .index_by { |r| [r.tournament_id, r.golfer_id] }
     @user_earnings_by_tab          = precompute_user_earnings
-    @no_cut_users                  = no_cut_survivors
 
     if @live_tournament
       live_picks   = Pick.where(tournament: @live_tournament, user_id: @standings_users.map(&:id))
@@ -576,9 +574,5 @@ class StandingsController < ApplicationController
   def thru_sort_val(thru)
     return 0 if thru.nil?
     thru&.start_with?("F") ? 19 : thru.to_i
-  end
-
-  def no_cut_survivors
-    User.where(approved: true).where.not(name: "Commissioner").select(&:no_cut_streak_alive?)
   end
 end

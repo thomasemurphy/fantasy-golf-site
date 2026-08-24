@@ -187,6 +187,35 @@
 .tab-label-pink-event  { color: #e07ab8; }
 .tab-label-first-half  { color: #F5D049; }
 .tab-label-second-half { color: #D46C19; }
+.tab-label-nocut       { color: #a0522d; }
+
+/* No-Cut tab: scrolling marquee. Each span enters at the right edge and exits at
+   the left, same as before; a second span is staggered halfway through the cycle
+   so a new one starts crossing shortly after the previous one exits, instead of
+   waiting for a full lap. `left` (not `transform`) is used so the 100%/-100%
+   endpoints are relative to the container, not the text's own width. */
+.no-cut-marquee {
+  position: relative;
+  height: 3rem;
+  overflow: hidden;
+}
+.no-cut-marquee span {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  white-space: nowrap;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #a0522d;
+  animation: no-cut-scroll 7s linear infinite;
+}
+.no-cut-marquee span:nth-child(2) {
+  animation-delay: 3.5s;
+}
+@keyframes no-cut-scroll {
+  from { left: 100%; }
+  to   { left: -100%; }
+}
 
 
 /* Smaller tournament pills row */

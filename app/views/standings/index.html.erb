@@ -8,7 +8,7 @@
       </button>
     </li>
   <% end %>
-  <% [["overall","Main Pot","tab-label-regular","~60% of total pot, ~$6,700","All events"],["majors","Majors Pot","tab-label-major","15% of total pot, ~$1,600",nil],["side_events","High-Purse Side Pot","tab-label-side-event","15% of total pot, ~$1,600",nil],["pink_events","Low-Purse Side Pot","tab-label-pink-event","$500",nil],["first_half","🕐 1st Half","tab-label-first-half","$300",nil],["second_half","🕢 2nd Half","tab-label-second-half","$300",nil]].each do |tid, label, css_class, prize_text, body_text| %>
+  <% [["overall","Main Pot","tab-label-regular","~60% of total pot, ~$6,700","All events"],["majors","Majors Pot","tab-label-major","15% of total pot, ~$1,600",nil],["side_events","High-Purse Side Pot","tab-label-side-event","15% of total pot, ~$1,600",nil],["pink_events","Low-Purse Side Pot","tab-label-pink-event","$500",nil],["first_half","🕐 1st Half","tab-label-first-half","$300",nil],["second_half","🕢 2nd Half","tab-label-second-half","$300",nil],["no_cut","No-Cut","tab-label-nocut","$400",nil]].each do |tid, label, css_class, prize_text, body_text| %>
     <% pot_tourneys = @pot_tournaments[tid] %>
     <li class="nav-item" role="presentation">
       <button class="nav-link <%= 'active' if @initial_tab == tid %>"
@@ -210,6 +210,16 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <%# --- No-Cut tab: not a leaderboard, just a marquee --- %>
+  <div id="tab-no_cut" class="tab-pane fade <%= 'show active' if @initial_tab == 'no_cut' %>" role="tabpanel">
+    <div class="standings-table-wrapper" style="overflow: hidden; padding: 3rem 0;">
+      <div class="no-cut-marquee">
+        <span>Jack Murphy 💰</span>
+        <span>Jack Murphy 💰</span>
       </div>
     </div>
   </div>
