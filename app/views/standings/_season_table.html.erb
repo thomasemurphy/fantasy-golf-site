@@ -17,11 +17,6 @@
         <th><%= sort_header("Player",   "player", s_base, cur_sort, cur_dir) %></th>
         <th></th>
         <th class="text-end"><%= sort_header("Earnings", "earnings", s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
-        <% if tab_id == "side_events" %>
-          <th>FedEx Pick</th>
-          <th class="text-end">Proj. FedEx $</th>
-          <th class="text-end"><%= sort_header("Proj High-Purse", "proj_high_purse", s_base, cur_sort, cur_dir, natural_dir: "desc") %></th>
-        <% end %>
       </tr>
     </thead>
     <tbody>
@@ -42,27 +37,6 @@
               <span class="text-muted">—</span>
             <% end %>
           </td>
-          <% if tab_id == "side_events" %>
-            <td>
-              <% if row[:fedex_golfer] %>
-                <%= row[:fedex_golfer].name %>
-                <% if row[:fedex_pick].is_double_down? %><span class="badge bg-warning text-dark ms-1">2x</span><% end %>
-                <% if row[:fedex_pick].auto_assigned? %><span class="badge bg-secondary ms-1">Auto</span><% end %>
-              <% else %>
-                <span class="text-muted">—</span>
-              <% end %>
-            </td>
-            <td class="text-end tabular-nums">
-              <% if row[:fedex_projected_cents] %>
-                $<%= number_with_delimiter((row[:fedex_projected_cents] / 100.0).to_i) %>
-              <% else %>
-                <span class="text-muted">—</span>
-              <% end %>
-            </td>
-            <td class="text-end tabular-nums fw-semibold">
-              $<%= number_with_delimiter((row[:side_plus_fedex_cents].to_i / 100.0).to_i) %>
-            </td>
-          <% end %>
         </tr>
       <% end %>
     </tbody>
