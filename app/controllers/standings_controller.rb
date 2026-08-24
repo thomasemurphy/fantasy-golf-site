@@ -196,12 +196,11 @@ class StandingsController < ApplicationController
       u = row[:user]
       case sort
       when "player"          then u.name
-      when "dd"              then u.double_downs_remaining
       when "proj_high_purse" then [-row[:side_plus_fedex_cents].to_i, u.name]
       else                        [-row[:earnings_cents].to_i, u.name]
       end
     end
-    rows.reverse! if %w[earnings dd proj_high_purse].include?(sort) && dir == "asc"
+    rows.reverse! if %w[earnings proj_high_purse].include?(sort) && dir == "asc"
     rows.reverse! if sort == "player" && dir == "desc"
     rows
   end
